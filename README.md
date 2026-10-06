@@ -115,8 +115,9 @@ export async function POST(request: Request) {
 }
 ```
 
-CheckCourt keeps a successful render for 30 seconds. Pass `maxAge` (seconds, at most 300)
-to change that for one answer, or `0` when the panel must always be fresh:
+CheckCourt keeps a successful render for 30 seconds. Pass `maxAge` (seconds, at most 300,
+sent as `cache.max_age`) to change that for one answer, or `0` when the panel must always
+be fresh:
 
 ```ts
 return Response.json(ui.doc([ui.stat("Battery", `${level} %`)], { maxAge: 0 }));

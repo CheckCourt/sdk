@@ -27,14 +27,14 @@ describe("ui builder", () => {
     });
   });
 
-  it("emits a cache hint from maxAge on visible and hidden documents", () => {
-    expect(ui.doc([], { maxAge: 120 })).toEqual({ ui: "v1", blocks: [], cache: { maxAge: 120 } });
-    expect(JSON.stringify(ui.hidden({ maxAge: 0 }))).toBe('{"ui":"v1","hidden":true,"cache":{"maxAge":0}}');
+  it("emits cache.max_age from maxAge on visible and hidden documents", () => {
+    expect(ui.doc([], { maxAge: 120 })).toEqual({ ui: "v1", blocks: [], cache: { max_age: 120 } });
+    expect(JSON.stringify(ui.hidden({ maxAge: 0 }))).toBe('{"ui":"v1","hidden":true,"cache":{"max_age":0}}');
     expect(ui.doc([], { toast: toast.success("Ok"), maxAge: 60 })).toEqual({
       ui: "v1",
       blocks: [],
       toast: { kind: "success", message: "Ok" },
-      cache: { maxAge: 60 },
+      cache: { max_age: 60 },
     });
     expect("cache" in ui.doc([])).toBe(false);
   });

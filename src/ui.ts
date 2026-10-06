@@ -75,7 +75,7 @@ export const UI_CACHE_MAX_AGE_LIMIT = 300;
  * How long CheckCourt may reuse a render, in whole seconds. `0` means never. Without it
  * CheckCourt follows the response's `Cache-Control` header, else keeps a render for 30 seconds.
  */
-export type UiCache = { maxAge: number };
+export type UiCache = { max_age: number };
 
 /** The response of a declarative extension: `{ ui: "v1", blocks, toast?, cache? }`. */
 export interface UiDocument {
@@ -132,7 +132,7 @@ function compact<T extends object>(value: T): T {
 /** Options shared by `ui.doc` and `ui.hidden`. */
 export interface UiDocumentOptions {
   toast?: UiToast;
-  /** Seconds CheckCourt may reuse this render; `0` disables caching. Capped at 300. */
+  /** Seconds CheckCourt may reuse this render, sent as `cache.max_age`; `0` disables caching. Capped at 300. */
   maxAge?: number;
 }
 
@@ -141,7 +141,7 @@ function cacheOf(maxAge: number | undefined): UiCache | undefined {
   if (!Number.isInteger(maxAge) || maxAge < 0) {
     throw new RangeError(`maxAge must be a whole number of seconds >= 0, got ${maxAge}`);
   }
-  return { maxAge };
+  return { max_age: maxAge };
 }
 
 /**

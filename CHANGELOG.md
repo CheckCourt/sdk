@@ -7,7 +7,7 @@ versions may contain breaking changes.
 
 ### Added
 
-- `ui.doc(blocks, { maxAge })` and `ui.hidden({ maxAge })` add `cache: { maxAge }` to the
+- `ui.doc(blocks, { maxAge })` and `ui.hidden({ maxAge })` add `cache: { max_age }` to the
   document: how many seconds CheckCourt may reuse the render. `0` turns caching off.
   CheckCourt caps the value at 300 seconds (`UI_CACHE_MAX_AGE_LIMIT`). Without it, CheckCourt
   follows the response's `Cache-Control` header (`no-store`, `no-cache`, `max-age=N`), and

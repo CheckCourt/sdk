@@ -29,7 +29,7 @@ function cacheOf(maxAge) {
     if (!Number.isInteger(maxAge) || maxAge < 0) {
         throw new RangeError(`maxAge must be a whole number of seconds >= 0, got ${maxAge}`);
     }
-    return { maxAge };
+    return { max_age: maxAge };
 }
 /**
  * Builds `ui: "v1"` documents. Strings are plain text (no HTML, no Markdown); CheckCourt

@@ -119,7 +119,7 @@ export declare const UI_CACHE_MAX_AGE_LIMIT = 300;
  * CheckCourt follows the response's `Cache-Control` header, else keeps a render for 30 seconds.
  */
 export type UiCache = {
-    maxAge: number;
+    max_age: number;
 };
 /** The response of a declarative extension: `{ ui: "v1", blocks, toast?, cache? }`. */
 export interface UiDocument {
@@ -145,7 +145,7 @@ type Opt<T> = {
 /** Options shared by `ui.doc` and `ui.hidden`. */
 export interface UiDocumentOptions {
     toast?: UiToast;
-    /** Seconds CheckCourt may reuse this render; `0` disables caching. Capped at 300. */
+    /** Seconds CheckCourt may reuse this render, sent as `cache.max_age`; `0` disables caching. Capped at 300. */
     maxAge?: number;
 }
 /**

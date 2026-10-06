@@ -1,0 +1,79 @@
+{
+  "name": "@checkcourt/sdk",
+  "version": "0.3.0",
+  "description": "Official TypeScript SDK for the CheckCourt app platform",
+  "private": false,
+  "license": "MIT",
+  "author": "CheckCourt",
+  "homepage": "https://github.com/CheckCourt/sdk#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CheckCourt/sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/CheckCourt/sdk/issues"
+  },
+  "keywords": [
+    "checkcourt",
+    "sdk",
+    "api-client",
+    "oauth",
+    "webhooks",
+    "openapi"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./oauth": {
+      "types": "./dist/oauth.d.ts",
+      "default": "./dist/oauth.js"
+    },
+    "./webhooks": {
+      "types": "./dist/webhooks.d.ts",
+      "default": "./dist/webhooks.js"
+    },
+    "./extensions": {
+      "types": "./dist/extensions.d.ts",
+      "default": "./dist/extensions.js"
+    },
+    "./manifest": {
+      "types": "./dist/manifest.d.ts",
+      "default": "./dist/manifest.js"
+    },
+    "./iframe": {
+      "types": "./dist/iframe.d.ts",
+      "default": "./dist/iframe.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "openapi-typescript": "^7.4.0",
+    "typescript": "^5.0.0",
+    "vitest": "^4.1.6"
+  }
+}

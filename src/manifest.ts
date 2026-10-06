@@ -19,6 +19,12 @@ export const EXTENSION_POINTS = {
   "dashboard.widget": { targets: ["tenant", "user"], kinds: ["declarative"] },
   "booking.action": { targets: ["tenant", "user"], kinds: ["declarative"] },
   "kiosk.tile": { targets: ["tenant"], kinds: ["declarative"] },
+  "court.annotation": { targets: ["tenant"], kinds: ["declarative"] },
+  "member.list.column": { targets: ["tenant"], kinds: ["declarative"] },
+  "member.settings.section": { targets: ["user"], kinds: ["declarative", "iframe"] },
+  "booking.hint": { targets: ["tenant"], kinds: ["declarative"] },
+  "booking_plan.action": { targets: ["tenant"], kinds: ["declarative"] },
+  "sidebar.action": { targets: ["tenant", "user"], kinds: ["declarative"] },
 } as const;
 
 export type ExtensionPoint = keyof typeof EXTENSION_POINTS;
@@ -31,7 +37,59 @@ export const EXTENSION_POINT_SCOPE = {
   "member.profile.section": "members:read",
   "dashboard.widget": null,
   "kiosk.tile": null,
+  "court.annotation": "courts:read",
+  "member.list.column": "members:read",
+  "member.settings.section": null,
+  "booking.hint": "bookings:read",
+  "booking_plan.action": "courts:read",
+  "sidebar.action": null,
 } as const satisfies Record<ExtensionPoint, GrantableScope | null>;
+
+/** Buttons CheckCourt draws from the manifest alone, before the app is ever called. */
+export const STATIC_ACTION_POINTS = ["booking_plan.action", "sidebar.action"] as const satisfies readonly ExtensionPoint[];
+export type StaticActionPoint = (typeof STATIC_ACTION_POINTS)[number];
+/** Longest `label` of a static action. */
+export const STATIC_ACTION_LABEL_MAX = 24;
+
+/** lucide icon names a static action may use as `icon`. */
+export const APP_ACTION_ICONS = [
+  "bell",
+  "calendar",
+  "calendar-check",
+  "camera",
+  "chart-column",
+  "circle-help",
+  "clipboard-list",
+  "clock",
+  "cloud-rain",
+  "door-open",
+  "file-text",
+  "flag",
+  "heart-pulse",
+  "info",
+  "key-round",
+  "lightbulb",
+  "link",
+  "list-checks",
+  "lock-open",
+  "map-pin",
+  "megaphone",
+  "message-square",
+  "receipt",
+  "send",
+  "sparkles",
+  "star",
+  "sun",
+  "thermometer",
+  "ticket",
+  "triangle-alert",
+  "trophy",
+  "user-round",
+  "users",
+  "wallet",
+  "wrench",
+] as const;
+export type AppActionIcon = (typeof APP_ACTION_ICONS)[number];
 
 /** Every scope an app may request. Role, app, webhook, key, billing and AVV management are reserved for people. */
 export const GRANTABLE_SCOPES = [
@@ -91,11 +149,22 @@ type ExtensionOf<P extends ExtensionPoint> = {
   kind: (typeof EXTENSION_POINTS)[P]["kinds"][number];
   /** https; http://localhost is accepted outside production. */
   url: string;
-} & (P extends "booking.action"
-  ? { /** Button text, 1 to 40 characters. */ label: string }
-  : { label?: string });
+} & (P extends StaticActionPoint
+  ? {
+      /** Button text, 1 to 24 characters (`STATIC_ACTION_LABEL_MAX`). */
+      label: string;
+      icon?: AppActionIcon;
+    }
+  : P extends "booking.action"
+    ? { /** Button text, 1 to 40 characters. */ label: string; icon?: never }
+    : P extends "member.list.column"
+      ? { /** Column header until the app's first answer arrives, ideally the same text as `column.title`. */ label?: string; icon?: never }
+      : { label?: string; icon?: never });
 
-/** One entry of `extensions`; `kind` and `label` are checked per point at compile time. */
+/**
+ * One entry of `extensions`; `kind`, `label` and `icon` are checked per point at compile time.
+ * Every point may appear once, except `booking.action`.
+ */
 export type ManifestExtension = { [P in ExtensionPoint]: ExtensionOf<P> }[ExtensionPoint];
 
 interface SettingsPropertyBase {

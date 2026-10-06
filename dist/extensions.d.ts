@@ -3,14 +3,15 @@ import type { UiFormValues } from "./ui.js";
 import { type RawBody } from "./webhooks.js";
 export * from "./ui.js";
 export { ExtensionVerificationError, type ExtensionVerificationFailure } from "./errors.js";
-export { EXTENSION_POINTS, type ExtensionKind, type ExtensionPoint } from "./manifest.js";
+export { EXTENSION_POINTS, STATIC_ACTION_POINTS, type ExtensionKind, type ExtensionPoint, type StaticActionPoint, } from "./manifest.js";
 export declare const CONTEXT_HEADER = "CheckCourt-Context";
 export declare const CONTEXT_ISSUER = "checkcourt";
 export declare const CONTEXT_TTL_SECONDS = 300;
 export declare const CLOCK_LEEWAY_SECONDS = 30;
 /** `action_id` a `booking.action` button sends when it is clicked. */
 export declare const BOOKING_ACTION_INVOKE = "invoke";
-export type ExtensionSubjectType = "booking" | "member" | "installation";
+/** "booking_plan": the plan of one day; its id is the date (YYYY-MM-DD). */
+export type ExtensionSubjectType = "booking" | "member" | "installation" | "booking_plan";
 export interface ExtensionSubject {
     type: ExtensionSubjectType;
     id: string;
@@ -33,6 +34,12 @@ export interface DashboardCapabilities {
 export interface AppSettingsCapabilities {
     can_manage_app: boolean;
 }
+export interface MemberListCapabilities {
+    can_edit_members: boolean;
+}
+export interface BookingPlanCapabilities {
+    can_edit_bookings: boolean;
+}
 export interface PointCapabilities {
     "app.settings": AppSettingsCapabilities;
     "booking.detail.panel": BookingCapabilities;
@@ -40,6 +47,12 @@ export interface PointCapabilities {
     "member.profile.section": MemberCapabilities;
     "dashboard.widget": DashboardCapabilities;
     "kiosk.tile": Record<string, never>;
+    "court.annotation": Record<string, never>;
+    "member.list.column": MemberListCapabilities;
+    "member.settings.section": Record<string, never>;
+    "booking.hint": Record<string, never>;
+    "booking_plan.action": BookingPlanCapabilities;
+    "sidebar.action": Record<string, never>;
 }
 export interface PointSubject {
     "app.settings": {
@@ -60,6 +73,16 @@ export interface PointSubject {
     };
     "dashboard.widget": null;
     "kiosk.tile": null;
+    "court.annotation": null;
+    "member.list.column": null;
+    "member.settings.section": null;
+    "booking.hint": null;
+    /** `id` is the plan's day, YYYY-MM-DD. */
+    "booking_plan.action": {
+        type: "booking_plan";
+        id: string;
+    };
+    "sidebar.action": null;
 }
 interface ContextClaimsOf<P extends ExtensionPoint> {
     iss: typeof CONTEXT_ISSUER;
@@ -92,12 +115,44 @@ export type ExtensionContextClaims = {
 export declare function verifyExtensionContext(token: string, secret: string, options?: {
     now?: Date | number;
 }): Promise<ExtensionContextClaims>;
+/** A court of the plan a `court.annotation` request covers. */
+export interface AnnotationCourt {
+    id: number;
+    name: string;
+}
+/** A member on the visible page of the member list. */
+export interface ColumnMember {
+    /** The club membership id, as `member_id` in `member.*` events; key your column values by it. */
+    member_id: string;
+    user_id: string;
+}
+export declare const BOOKING_DRAFT_TYPES: readonly ["regular", "training", "mannschaft"];
+export type BookingDraftType = (typeof BOOKING_DRAFT_TYPES)[number];
+/** The booking a member is about to confirm, sent with `booking.hint`. */
+export interface BookingDraft {
+    court_id: number;
+    /** YYYY-MM-DD. */
+    date: string;
+    /** HH:MM. */
+    start_time: string;
+    /** HH:MM. */
+    end_time: string;
+    type: BookingDraftType;
+}
 /** Body of a declarative render request. */
 export interface ExtensionRenderRequest {
     kind: "render";
     context: ExtensionContextClaims;
     point: ExtensionPoint;
     subject: ExtensionSubject | null;
+    /** `court.annotation`: the plan's day, YYYY-MM-DD. */
+    date?: string;
+    /** `court.annotation`: every court of the plan, answered in one document. */
+    courts?: AnnotationCourt[];
+    /** `member.list.column`: the members on the visible page. */
+    members?: ColumnMember[];
+    /** `booking.hint`: the booking being drafted. */
+    draft?: BookingDraft;
 }
 /** Body of a button click or form submission. `values` is `{}` for buttons. */
 export interface ExtensionActionRequest {
@@ -113,7 +168,8 @@ type HeaderSource = Headers | Record<string, string | string[] | undefined>;
 /**
  * Verifies a declarative extension POST: the `CheckCourt-Signature` over the raw body (it binds
  * `action_id` and `values` to the token), the context token, and that body, header token and
- * claims agree. Throws `ExtensionVerificationError`.
+ * claims agree. Renders at `court.annotation`, `member.list.column` and `booking.hint` also
+ * carry `date` and `courts`, `members` or `draft`. Throws `ExtensionVerificationError`.
  */
 export declare function verifyExtensionRequest(options: {
     secret: string;

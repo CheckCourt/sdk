@@ -10,6 +10,12 @@ export const EXTENSION_POINTS = {
     "dashboard.widget": { targets: ["tenant", "user"], kinds: ["declarative"] },
     "booking.action": { targets: ["tenant", "user"], kinds: ["declarative"] },
     "kiosk.tile": { targets: ["tenant"], kinds: ["declarative"] },
+    "court.annotation": { targets: ["tenant"], kinds: ["declarative"] },
+    "member.list.column": { targets: ["tenant"], kinds: ["declarative"] },
+    "member.settings.section": { targets: ["user"], kinds: ["declarative", "iframe"] },
+    "booking.hint": { targets: ["tenant"], kinds: ["declarative"] },
+    "booking_plan.action": { targets: ["tenant"], kinds: ["declarative"] },
+    "sidebar.action": { targets: ["tenant", "user"], kinds: ["declarative"] },
 };
 /** Scope the installation needs (in `tenantScopes` or `userScopes`) before the point hands it a subject id. */
 export const EXTENSION_POINT_SCOPE = {
@@ -19,7 +25,55 @@ export const EXTENSION_POINT_SCOPE = {
     "member.profile.section": "members:read",
     "dashboard.widget": null,
     "kiosk.tile": null,
+    "court.annotation": "courts:read",
+    "member.list.column": "members:read",
+    "member.settings.section": null,
+    "booking.hint": "bookings:read",
+    "booking_plan.action": "courts:read",
+    "sidebar.action": null,
 };
+/** Buttons CheckCourt draws from the manifest alone, before the app is ever called. */
+export const STATIC_ACTION_POINTS = ["booking_plan.action", "sidebar.action"];
+/** Longest `label` of a static action. */
+export const STATIC_ACTION_LABEL_MAX = 24;
+/** lucide icon names a static action may use as `icon`. */
+export const APP_ACTION_ICONS = [
+    "bell",
+    "calendar",
+    "calendar-check",
+    "camera",
+    "chart-column",
+    "circle-help",
+    "clipboard-list",
+    "clock",
+    "cloud-rain",
+    "door-open",
+    "file-text",
+    "flag",
+    "heart-pulse",
+    "info",
+    "key-round",
+    "lightbulb",
+    "link",
+    "list-checks",
+    "lock-open",
+    "map-pin",
+    "megaphone",
+    "message-square",
+    "receipt",
+    "send",
+    "sparkles",
+    "star",
+    "sun",
+    "thermometer",
+    "ticket",
+    "triangle-alert",
+    "trophy",
+    "user-round",
+    "users",
+    "wallet",
+    "wrench",
+];
 /** Every scope an app may request. Role, app, webhook, key, billing and AVV management are reserved for people. */
 export const GRANTABLE_SCOPES = [
     "courts:read",

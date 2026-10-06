@@ -137,6 +137,65 @@ export interface UiHiddenDocument {
 }
 /** Anything a declarative extension may answer with. */
 export type UiResponse = UiDocument | UiHiddenDocument;
+/** Longest badge label of a `court.annotation`. */
+export declare const ANNOTATION_LABEL_MAX = 24;
+/** Badges CheckCourt shows per court across all apps, by app name; the rest is not shown. */
+export declare const MAX_ANNOTATIONS_PER_COURT = 2;
+/** Longest `column.title` of a `member.list.column`. */
+export declare const COLUMN_TITLE_MAX = 20;
+/** Longest cell text of a `member.list.column`. */
+export declare const COLUMN_TEXT_MAX = 24;
+/** App columns CheckCourt shows on the member list, by app name. */
+export declare const MAX_APP_COLUMNS = 2;
+/** App entries CheckCourt shows in the sidebar, by app name. */
+export declare const MAX_SIDEBAR_ACTIONS = 2;
+/** CheckCourt waits this long for a `booking.hint` answer, then shows nothing. */
+export declare const BOOKING_HINT_TIMEOUT_MS = 1000;
+/** Block types a `booking.hint` document may contain, top level only. */
+export declare const BOOKING_HINT_BLOCKS: readonly ["text", "badge", "key_value", "link"];
+export declare const MAX_HINT_BLOCKS = 6;
+/** Apps whose hints CheckCourt shows in the booking dialog, by app name. */
+export declare const MAX_BOOKING_HINTS = 2;
+/** One badge in a court header of the booking plan. */
+export interface CourtAnnotation {
+    court_id: number;
+    /** 1 to 24 characters. */
+    label: string;
+    variant?: BadgeVariant;
+}
+/** The answer to `court.annotation`: at most one annotation per court. */
+export interface AnnotationsDocument {
+    ui: typeof UI_VERSION;
+    annotations: CourtAnnotation[];
+    cache?: UiCache;
+}
+/** One cell of an app column on the member list; a badge when `variant` is set, plain text otherwise. */
+export interface ColumnValue {
+    member_id: string;
+    /** 1 to 24 characters. */
+    text: string;
+    variant?: BadgeVariant;
+}
+/** The answer to `member.list.column`: at most one value per member. */
+export interface ColumnDocument {
+    ui: typeof UI_VERSION;
+    column: {
+        title: string;
+        values: ColumnValue[];
+    };
+    cache?: UiCache;
+}
+export type UiHintBlock = UiTextBlock | UiBadgeBlock | UiKeyValueBlock | UiLinkBlock;
+/** The answer to `booking.hint`: display-only blocks; toasts are ignored. */
+export interface UiHintDocument extends UiDocument {
+    blocks: UiHintBlock[];
+    toast?: never;
+}
+/** Options of `ui.annotations`, `ui.column` and `ui.hint`. */
+export interface UiSurfaceOptions {
+    /** Seconds CheckCourt may reuse this render, sent as `cache.max_age`; `0` disables caching. Capped at 300. */
+    maxAge?: number;
+}
 /** Values a submitted form sends back, keyed by field name. Empty optional fields are omitted. */
 export type UiFormValues = Record<string, string | number | boolean>;
 type Opt<T> = {
@@ -154,6 +213,24 @@ export interface UiDocumentOptions {
  */
 export declare const ui: {
     readonly doc: (blocks: UiBlock[], options?: UiDocumentOptions) => UiDocument;
+    /**
+     * The answer to `court.annotation`: badges for some of the requested courts, at most one per
+     * court. Throws on a label outside 1 to 24 characters or a court listed twice.
+     */
+    readonly annotations: (annotations: CourtAnnotation[], options?: UiSurfaceOptions) => AnnotationsDocument;
+    /**
+     * The answer to `member.list.column`: a title and one value per member you have something for.
+     * Throws on a title over 20 or a text over 24 characters, or a member listed twice.
+     */
+    readonly column: (column: {
+        title: string;
+        values: ColumnValue[];
+    }, options?: UiSurfaceOptions) => ColumnDocument;
+    /**
+     * The answer to `booking.hint`: at most 6 text, badge, key_value or link blocks. Throws on any
+     * other block, which CheckCourt would reject together with the whole hint.
+     */
+    readonly hint: (blocks: UiHintBlock[], options?: UiSurfaceOptions) => UiHintDocument;
     /** Nothing relevant here: no card at all. Answering `204 No Content` does the same. */
     readonly hidden: (options?: UiDocumentOptions) => UiHiddenDocument;
     readonly text: (text: string, options?: {

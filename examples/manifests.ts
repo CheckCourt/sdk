@@ -13,6 +13,17 @@ export const clubApp = defineManifest({
     { point: "member.profile.section", kind: "declarative", url: "https://door.example.de/ext/member" },
     { point: "dashboard.widget", kind: "declarative", url: "https://door.example.de/ext/dashboard" },
     { point: "kiosk.tile", kind: "declarative", url: "https://door.example.de/ext/kiosk" },
+    { point: "court.annotation", kind: "declarative", url: "https://door.example.de/ext/courts" },
+    { point: "member.list.column", kind: "declarative", url: "https://door.example.de/ext/column", label: "Türcode" },
+    { point: "booking.hint", kind: "declarative", url: "https://door.example.de/ext/hint" },
+    {
+      point: "booking_plan.action",
+      kind: "declarative",
+      url: "https://door.example.de/ext/plan",
+      label: "Türen prüfen",
+      icon: "door-open",
+    },
+    { point: "sidebar.action", kind: "declarative", url: "https://door.example.de/ext/status", label: "Türstatus" },
   ],
   settingsSchema: {
     type: "object",
@@ -41,6 +52,14 @@ export const memberApp = defineManifest({
   extensions: [
     { point: "dashboard.widget", kind: "declarative", url: "https://kalender.example.de/ext/dashboard" },
     { point: "booking.detail.panel", kind: "iframe", url: "https://kalender.example.de/ext/booking" },
+    { point: "member.settings.section", kind: "declarative", url: "https://kalender.example.de/ext/settings" },
+    {
+      point: "sidebar.action",
+      kind: "declarative",
+      url: "https://kalender.example.de/ext/sync",
+      label: "Kalender abgleichen",
+      icon: "calendar-check",
+    },
   ],
   dataProcessing: {
     categories: ["Buchungsdaten"],

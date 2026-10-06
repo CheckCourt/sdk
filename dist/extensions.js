@@ -4,7 +4,7 @@ import { hmacSha256Verify } from "./internal/hmac.js";
 import { SIGNATURE_HEADER, verifySignature } from "./webhooks.js";
 export * from "./ui.js";
 export { ExtensionVerificationError } from "./errors.js";
-export { EXTENSION_POINTS } from "./manifest.js";
+export { EXTENSION_POINTS, STATIC_ACTION_POINTS, } from "./manifest.js";
 export const CONTEXT_HEADER = "CheckCourt-Context";
 export const CONTEXT_ISSUER = "checkcourt";
 export const CONTEXT_TTL_SECONDS = 300;
@@ -65,6 +65,7 @@ export async function verifyExtensionContext(token, secret, options = {}) {
         throw fail("expired", "Token has expired");
     return claims;
 }
+export const BOOKING_DRAFT_TYPES = ["regular", "training", "mannschaft"];
 function header(headers, name) {
     if (typeof headers.get === "function")
         return headers.get(name) ?? undefined;
@@ -80,10 +81,60 @@ function sameSubject(a, b) {
         return a === b;
     return a.type === b.type && a.id === b.id;
 }
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME = /^\d{2}:\d{2}$/;
+const isObject = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
+function surfaceFields(point, body) {
+    switch (point) {
+        case "court.annotation": {
+            const { date, courts } = body;
+            if (typeof date !== "string" || !DATE.test(date))
+                throw fail("invalid_body", "date is not YYYY-MM-DD");
+            if (!Array.isArray(courts) || !courts.every((c) => isObject(c) && typeof c.id === "number" && typeof c.name === "string")) {
+                throw fail("invalid_body", "courts is not a list of { id, name }");
+            }
+            return { date, courts: courts.map((c) => ({ id: c.id, name: c.name })) };
+        }
+        case "member.list.column": {
+            const { members } = body;
+            if (!Array.isArray(members) ||
+                !members.every((m) => isObject(m) && typeof m.member_id === "string" && typeof m.user_id === "string")) {
+                throw fail("invalid_body", "members is not a list of { member_id, user_id }");
+            }
+            return { members: members.map((m) => ({ member_id: m.member_id, user_id: m.user_id })) };
+        }
+        case "booking.hint": {
+            const d = body.draft;
+            if (!isObject(d) ||
+                typeof d.court_id !== "number" ||
+                typeof d.date !== "string" ||
+                !DATE.test(d.date) ||
+                typeof d.start_time !== "string" ||
+                !TIME.test(d.start_time) ||
+                typeof d.end_time !== "string" ||
+                !TIME.test(d.end_time) ||
+                typeof d.type !== "string") {
+                throw fail("invalid_body", "draft is not a booking draft");
+            }
+            return {
+                draft: {
+                    court_id: d.court_id,
+                    date: d.date,
+                    start_time: d.start_time,
+                    end_time: d.end_time,
+                    type: d.type,
+                },
+            };
+        }
+        default:
+            return {};
+    }
+}
 /**
  * Verifies a declarative extension POST: the `CheckCourt-Signature` over the raw body (it binds
  * `action_id` and `values` to the token), the context token, and that body, header token and
- * claims agree. Throws `ExtensionVerificationError`.
+ * claims agree. Renders at `court.annotation`, `member.list.column` and `booking.hint` also
+ * carry `date` and `courts`, `members` or `draft`. Throws `ExtensionVerificationError`.
  */
 export async function verifyExtensionRequest(options) {
     try {
@@ -121,7 +172,7 @@ export async function verifyExtensionRequest(options) {
         throw fail("context_mismatch", "point or subject differ from the context token");
     }
     if (body.action_id === undefined)
-        return { kind: "render", context, point: context.point, subject };
+        return { kind: "render", context, point: context.point, subject, ...surfaceFields(context.point, body) };
     if (typeof body.action_id !== "string")
         throw fail("invalid_body", "action_id is not a string");
     const values = body.values ?? {};

@@ -96,6 +96,72 @@ export interface UiHiddenDocument {
 /** Anything a declarative extension may answer with. */
 export type UiResponse = UiDocument | UiHiddenDocument;
 
+/** Longest badge label of a `court.annotation`. */
+export const ANNOTATION_LABEL_MAX = 24;
+/** Badges CheckCourt shows per court across all apps, by app name; the rest is not shown. */
+export const MAX_ANNOTATIONS_PER_COURT = 2;
+/** Longest `column.title` of a `member.list.column`. */
+export const COLUMN_TITLE_MAX = 20;
+/** Longest cell text of a `member.list.column`. */
+export const COLUMN_TEXT_MAX = 24;
+/** App columns CheckCourt shows on the member list, by app name. */
+export const MAX_APP_COLUMNS = 2;
+/** App entries CheckCourt shows in the sidebar, by app name. */
+export const MAX_SIDEBAR_ACTIONS = 2;
+/** CheckCourt waits this long for a `booking.hint` answer, then shows nothing. */
+export const BOOKING_HINT_TIMEOUT_MS = 1000;
+/** Block types a `booking.hint` document may contain, top level only. */
+export const BOOKING_HINT_BLOCKS = ["text", "badge", "key_value", "link"] as const;
+export const MAX_HINT_BLOCKS = 6;
+/** Apps whose hints CheckCourt shows in the booking dialog, by app name. */
+export const MAX_BOOKING_HINTS = 2;
+/** Annotations or column values one document may carry. */
+const MAX_SURFACE_ENTRIES = 200;
+
+/** One badge in a court header of the booking plan. */
+export interface CourtAnnotation {
+  court_id: number;
+  /** 1 to 24 characters. */
+  label: string;
+  variant?: BadgeVariant;
+}
+
+/** The answer to `court.annotation`: at most one annotation per court. */
+export interface AnnotationsDocument {
+  ui: typeof UI_VERSION;
+  annotations: CourtAnnotation[];
+  cache?: UiCache;
+}
+
+/** One cell of an app column on the member list; a badge when `variant` is set, plain text otherwise. */
+export interface ColumnValue {
+  member_id: string;
+  /** 1 to 24 characters. */
+  text: string;
+  variant?: BadgeVariant;
+}
+
+/** The answer to `member.list.column`: at most one value per member. */
+export interface ColumnDocument {
+  ui: typeof UI_VERSION;
+  column: { title: string; values: ColumnValue[] };
+  cache?: UiCache;
+}
+
+export type UiHintBlock = UiTextBlock | UiBadgeBlock | UiKeyValueBlock | UiLinkBlock;
+
+/** The answer to `booking.hint`: display-only blocks; toasts are ignored. */
+export interface UiHintDocument extends UiDocument {
+  blocks: UiHintBlock[];
+  toast?: never;
+}
+
+/** Options of `ui.annotations`, `ui.column` and `ui.hint`. */
+export interface UiSurfaceOptions {
+  /** Seconds CheckCourt may reuse this render, sent as `cache.max_age`; `0` disables caching. Capped at 300. */
+  maxAge?: number;
+}
+
 /** Values a submitted form sends back, keyed by field name. Empty optional fields are omitted. */
 export type UiFormValues = Record<string, string | number | boolean>;
 
@@ -144,6 +210,29 @@ function cacheOf(maxAge: number | undefined): UiCache | undefined {
   return { max_age: maxAge };
 }
 
+function shortText(value: unknown, max: number, what: string): string {
+  if (typeof value !== "string") throw new TypeError(`${what} must be a string`);
+  const text = value.trim();
+  if (text.length < 1 || text.length > max) {
+    throw new RangeError(`${what} must be 1 to ${max} characters, got ${text.length}`);
+  }
+  return text;
+}
+
+function variantOf(variant: unknown, what: string): BadgeVariant | undefined {
+  if (variant === undefined) return undefined;
+  if (!(BADGE_VARIANTS as readonly unknown[]).includes(variant)) {
+    throw new TypeError(`${what} must be one of ${BADGE_VARIANTS.join(", ")}`);
+  }
+  return variant as BadgeVariant;
+}
+
+function entriesOf<T>(list: unknown, what: string): T[] {
+  if (!Array.isArray(list)) throw new TypeError(`${what} must be an array`);
+  if (list.length > MAX_SURFACE_ENTRIES) throw new RangeError(`${what}: at most ${MAX_SURFACE_ENTRIES} entries`);
+  return list as T[];
+}
+
 /**
  * Builds `ui: "v1"` documents. Strings are plain text (no HTML, no Markdown); CheckCourt
  * renders them with its own design system.
@@ -151,6 +240,64 @@ function cacheOf(maxAge: number | undefined): UiCache | undefined {
 export const ui = {
   doc(blocks: UiBlock[], options: UiDocumentOptions = {}): UiDocument {
     return compact({ ui: UI_VERSION, blocks, toast: options.toast, cache: cacheOf(options.maxAge) });
+  },
+  /**
+   * The answer to `court.annotation`: badges for some of the requested courts, at most one per
+   * court. Throws on a label outside 1 to 24 characters or a court listed twice.
+   */
+  annotations(annotations: CourtAnnotation[], options: UiSurfaceOptions = {}): AnnotationsDocument {
+    const seen = new Set<number>();
+    const list = entriesOf<CourtAnnotation>(annotations, "annotations").map((a, i) => {
+      if (!Number.isInteger(a.court_id) || a.court_id <= 0) {
+        throw new TypeError(`annotations[${i}].court_id must be a positive integer`);
+      }
+      if (seen.has(a.court_id)) throw new RangeError(`annotations: court ${a.court_id} appears twice`);
+      seen.add(a.court_id);
+      return compact({
+        court_id: a.court_id,
+        label: shortText(a.label, ANNOTATION_LABEL_MAX, `annotations[${i}].label`),
+        variant: variantOf(a.variant, `annotations[${i}].variant`),
+      });
+    });
+    return compact({ ui: UI_VERSION, annotations: list, cache: cacheOf(options.maxAge) });
+  },
+  /**
+   * The answer to `member.list.column`: a title and one value per member you have something for.
+   * Throws on a title over 20 or a text over 24 characters, or a member listed twice.
+   */
+  column(column: { title: string; values: ColumnValue[] }, options: UiSurfaceOptions = {}): ColumnDocument {
+    const seen = new Set<string>();
+    const values = entriesOf<ColumnValue>(column.values, "column.values").map((v, i) => {
+      if (typeof v.member_id !== "string" || v.member_id.length < 1 || v.member_id.length > 100) {
+        throw new TypeError(`column.values[${i}].member_id must be a member id`);
+      }
+      if (seen.has(v.member_id)) throw new RangeError(`column.values: member ${v.member_id} appears twice`);
+      seen.add(v.member_id);
+      return compact({
+        member_id: v.member_id,
+        text: shortText(v.text, COLUMN_TEXT_MAX, `column.values[${i}].text`),
+        variant: variantOf(v.variant, `column.values[${i}].variant`),
+      });
+    });
+    return compact({
+      ui: UI_VERSION,
+      column: { title: shortText(column.title, COLUMN_TITLE_MAX, "column.title"), values },
+      cache: cacheOf(options.maxAge),
+    });
+  },
+  /**
+   * The answer to `booking.hint`: at most 6 text, badge, key_value or link blocks. Throws on any
+   * other block, which CheckCourt would reject together with the whole hint.
+   */
+  hint(blocks: UiHintBlock[], options: UiSurfaceOptions = {}): UiHintDocument {
+    if (!Array.isArray(blocks)) throw new TypeError("blocks must be an array");
+    if (blocks.length > MAX_HINT_BLOCKS) throw new RangeError(`booking.hint: at most ${MAX_HINT_BLOCKS} blocks`);
+    for (const [i, block] of blocks.entries()) {
+      if (!(BOOKING_HINT_BLOCKS as readonly string[]).includes((block as UiBlock).type)) {
+        throw new TypeError(`blocks[${i}]: ${(block as UiBlock).type} is not allowed in booking.hint`);
+      }
+    }
+    return compact({ ui: UI_VERSION, blocks, cache: cacheOf(options.maxAge) });
   },
   /** Nothing relevant here: no card at all. Answering `204 No Content` does the same. */
   hidden(options: UiDocumentOptions = {}): UiHiddenDocument {

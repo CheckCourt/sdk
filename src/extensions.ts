@@ -7,7 +7,13 @@ import { SIGNATURE_HEADER, verifySignature, type RawBody } from "./webhooks.js";
 
 export * from "./ui.js";
 export { ExtensionVerificationError, type ExtensionVerificationFailure } from "./errors.js";
-export { EXTENSION_POINTS, type ExtensionKind, type ExtensionPoint } from "./manifest.js";
+export {
+  EXTENSION_POINTS,
+  STATIC_ACTION_POINTS,
+  type ExtensionKind,
+  type ExtensionPoint,
+  type StaticActionPoint,
+} from "./manifest.js";
 
 export const CONTEXT_HEADER = "CheckCourt-Context";
 export const CONTEXT_ISSUER = "checkcourt";
@@ -17,7 +23,8 @@ export const CLOCK_LEEWAY_SECONDS = 30;
 export const BOOKING_ACTION_INVOKE = "invoke";
 const MAX_TOKEN_LENGTH = 8192;
 
-export type ExtensionSubjectType = "booking" | "member" | "installation";
+/** "booking_plan": the plan of one day; its id is the date (YYYY-MM-DD). */
+export type ExtensionSubjectType = "booking" | "member" | "installation" | "booking_plan";
 
 export interface ExtensionSubject {
   type: ExtensionSubjectType;
@@ -42,6 +49,12 @@ export interface DashboardCapabilities {
 export interface AppSettingsCapabilities {
   can_manage_app: boolean;
 }
+export interface MemberListCapabilities {
+  can_edit_members: boolean;
+}
+export interface BookingPlanCapabilities {
+  can_edit_bookings: boolean;
+}
 
 export interface PointCapabilities {
   "app.settings": AppSettingsCapabilities;
@@ -50,6 +63,12 @@ export interface PointCapabilities {
   "member.profile.section": MemberCapabilities;
   "dashboard.widget": DashboardCapabilities;
   "kiosk.tile": Record<string, never>;
+  "court.annotation": Record<string, never>;
+  "member.list.column": MemberListCapabilities;
+  "member.settings.section": Record<string, never>;
+  "booking.hint": Record<string, never>;
+  "booking_plan.action": BookingPlanCapabilities;
+  "sidebar.action": Record<string, never>;
 }
 
 export interface PointSubject {
@@ -59,6 +78,13 @@ export interface PointSubject {
   "member.profile.section": { type: "member"; id: string };
   "dashboard.widget": null;
   "kiosk.tile": null;
+  "court.annotation": null;
+  "member.list.column": null;
+  "member.settings.section": null;
+  "booking.hint": null;
+  /** `id` is the plan's day, YYYY-MM-DD. */
+  "booking_plan.action": { type: "booking_plan"; id: string };
+  "sidebar.action": null;
 }
 
 interface ContextClaimsOf<P extends ExtensionPoint> {
@@ -139,12 +165,48 @@ export async function verifyExtensionContext(
   return claims;
 }
 
+/** A court of the plan a `court.annotation` request covers. */
+export interface AnnotationCourt {
+  id: number;
+  name: string;
+}
+
+/** A member on the visible page of the member list. */
+export interface ColumnMember {
+  /** The club membership id, as `member_id` in `member.*` events; key your column values by it. */
+  member_id: string;
+  user_id: string;
+}
+
+export const BOOKING_DRAFT_TYPES = ["regular", "training", "mannschaft"] as const;
+export type BookingDraftType = (typeof BOOKING_DRAFT_TYPES)[number];
+
+/** The booking a member is about to confirm, sent with `booking.hint`. */
+export interface BookingDraft {
+  court_id: number;
+  /** YYYY-MM-DD. */
+  date: string;
+  /** HH:MM. */
+  start_time: string;
+  /** HH:MM. */
+  end_time: string;
+  type: BookingDraftType;
+}
+
 /** Body of a declarative render request. */
 export interface ExtensionRenderRequest {
   kind: "render";
   context: ExtensionContextClaims;
   point: ExtensionPoint;
   subject: ExtensionSubject | null;
+  /** `court.annotation`: the plan's day, YYYY-MM-DD. */
+  date?: string;
+  /** `court.annotation`: every court of the plan, answered in one document. */
+  courts?: AnnotationCourt[];
+  /** `member.list.column`: the members on the visible page. */
+  members?: ColumnMember[];
+  /** `booking.hint`: the booking being drafted. */
+  draft?: BookingDraft;
 }
 
 /** Body of a button click or form submission. `values` is `{}` for buttons. */
@@ -175,10 +237,65 @@ function sameSubject(a: ExtensionSubject | null, b: ExtensionSubject | null): bo
   return a.type === b.type && a.id === b.id;
 }
 
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME = /^\d{2}:\d{2}$/;
+const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+
+function surfaceFields(point: ExtensionPoint, body: Record<string, unknown>): Partial<ExtensionRenderRequest> {
+  switch (point) {
+    case "court.annotation": {
+      const { date, courts } = body;
+      if (typeof date !== "string" || !DATE.test(date)) throw fail("invalid_body", "date is not YYYY-MM-DD");
+      if (!Array.isArray(courts) || !courts.every((c) => isObject(c) && typeof c.id === "number" && typeof c.name === "string")) {
+        throw fail("invalid_body", "courts is not a list of { id, name }");
+      }
+      return { date, courts: courts.map((c: AnnotationCourt) => ({ id: c.id, name: c.name })) };
+    }
+    case "member.list.column": {
+      const { members } = body;
+      if (
+        !Array.isArray(members) ||
+        !members.every((m) => isObject(m) && typeof m.member_id === "string" && typeof m.user_id === "string")
+      ) {
+        throw fail("invalid_body", "members is not a list of { member_id, user_id }");
+      }
+      return { members: members.map((m: ColumnMember) => ({ member_id: m.member_id, user_id: m.user_id })) };
+    }
+    case "booking.hint": {
+      const d = body.draft;
+      if (
+        !isObject(d) ||
+        typeof d.court_id !== "number" ||
+        typeof d.date !== "string" ||
+        !DATE.test(d.date) ||
+        typeof d.start_time !== "string" ||
+        !TIME.test(d.start_time) ||
+        typeof d.end_time !== "string" ||
+        !TIME.test(d.end_time) ||
+        typeof d.type !== "string"
+      ) {
+        throw fail("invalid_body", "draft is not a booking draft");
+      }
+      return {
+        draft: {
+          court_id: d.court_id,
+          date: d.date,
+          start_time: d.start_time,
+          end_time: d.end_time,
+          type: d.type as BookingDraftType,
+        },
+      };
+    }
+    default:
+      return {};
+  }
+}
+
 /**
  * Verifies a declarative extension POST: the `CheckCourt-Signature` over the raw body (it binds
  * `action_id` and `values` to the token), the context token, and that body, header token and
- * claims agree. Throws `ExtensionVerificationError`.
+ * claims agree. Renders at `court.annotation`, `member.list.column` and `booking.hint` also
+ * carry `date` and `courts`, `members` or `draft`. Throws `ExtensionVerificationError`.
  */
 export async function verifyExtensionRequest(options: {
   secret: string;
@@ -221,7 +338,7 @@ export async function verifyExtensionRequest(options: {
     throw fail("context_mismatch", "point or subject differ from the context token");
   }
 
-  if (body.action_id === undefined) return { kind: "render", context, point: context.point, subject };
+  if (body.action_id === undefined) return { kind: "render", context, point: context.point, subject, ...surfaceFields(context.point, body) };
   if (typeof body.action_id !== "string") throw fail("invalid_body", "action_id is not a string");
   const values = body.values ?? {};
   if (typeof values !== "object" || Array.isArray(values)) throw fail("invalid_body", "values is not an object");

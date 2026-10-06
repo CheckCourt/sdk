@@ -109,3 +109,70 @@ describe("verifyExtensionRequest", () => {
     );
   });
 });
+
+describe("host surface requests", () => {
+  const surfaceClaims = (point: string, subject: object | null, capabilities: object = {}) =>
+    jwt({ alg: "HS256" }, { ...claims, point, subject, viewer: { user_id: "psn_1", capabilities } });
+
+  async function verify(token: string, body: object) {
+    const raw = JSON.stringify({ context: token, ...body });
+    const headers = { "checkcourt-signature": await signWebhookPayload(secret, raw, now), "CheckCourt-Context": token };
+    return verifyExtensionRequest({ secret, rawBody: raw, headers, now });
+  }
+
+  it("exposes date and courts of a court.annotation render", async () => {
+    const token = surfaceClaims("court.annotation", null);
+    const courts = [
+      { id: 1, name: "Platz 1" },
+      { id: 2, name: "Platz 2" },
+    ];
+    const r = await verify(token, { point: "court.annotation", subject: null, date: "2026-10-07", courts });
+    expect(r).toMatchObject({ kind: "render", point: "court.annotation", date: "2026-10-07", courts });
+    expect(await reason(verify(token, { point: "court.annotation", subject: null, date: "07.10.2026", courts }))).toBe(
+      "invalid_body",
+    );
+    expect(await reason(verify(token, { point: "court.annotation", subject: null, date: "2026-10-07" }))).toBe(
+      "invalid_body",
+    );
+  });
+
+  it("exposes the members of a member.list.column render", async () => {
+    const token = surfaceClaims("member.list.column", null, { can_edit_members: true });
+    const members = [{ member_id: "tu_1", user_id: "u_1" }];
+    const r = await verify(token, { point: "member.list.column", subject: null, members });
+    expect(r).toMatchObject({ kind: "render", members });
+    if (r.context.point === "member.list.column") expect(r.context.viewer.capabilities.can_edit_members).toBe(true);
+    expect(await reason(verify(token, { point: "member.list.column", subject: null, members: [{ member_id: 1 }] }))).toBe(
+      "invalid_body",
+    );
+  });
+
+  it("exposes the draft of a booking.hint render", async () => {
+    const token = surfaceClaims("booking.hint", null);
+    const draft = { court_id: 3, date: "2026-10-07", start_time: "18:00", end_time: "19:00", type: "regular" };
+    const r = await verify(token, { point: "booking.hint", subject: null, draft });
+    expect(r).toMatchObject({ kind: "render", draft });
+    expect(await reason(verify(token, { point: "booking.hint", subject: null, draft: { ...draft, start_time: 18 } }))).toBe(
+      "invalid_body",
+    );
+  });
+
+  it("verifies booking_plan.action renders and actions with the day as subject", async () => {
+    const subject = { type: "booking_plan", id: "2026-10-07" };
+    const token = surfaceClaims("booking_plan.action", subject, { can_edit_bookings: false });
+    const render = await verify(token, { point: "booking_plan.action", subject });
+    expect(render).toEqual({ kind: "render", context: expect.anything(), point: "booking_plan.action", subject });
+    if (render.context.point === "booking_plan.action") expect(render.context.subject.id).toBe("2026-10-07");
+    const action = await verify(token, { point: "booking_plan.action", subject, action_id: "close", values: {} });
+    expect(action).toMatchObject({ kind: "action", actionId: "close", subject });
+    expect(await reason(verify(token, { point: "booking_plan.action", subject: { ...subject, id: "2026-10-08" } }))).toBe(
+      "context_mismatch",
+    );
+  });
+
+  it("adds no surface fields to other points", async () => {
+    const token = surfaceClaims("sidebar.action", null);
+    const r = await verify(token, { point: "sidebar.action", subject: null, date: "2026-10-07" });
+    expect(r).toEqual({ kind: "render", context: expect.anything(), point: "sidebar.action", subject: null });
+  });
+});

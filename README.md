@@ -130,6 +130,35 @@ Compare `context.installation_id` and `context.tenant_id` with what you stored f
 `app.installed` before you act on a request. For the context token alone (for example in
 the backend of an iframe extension), use `verifyExtensionContext(token, secret)`.
 
+### Host surfaces
+
+Some points are drawn by CheckCourt itself and only ask your app for a few words. Answer them
+with the matching builder; each throws when the answer would break CheckCourt's limits.
+
+| Point | Request carries | Answer with |
+|---|---|---|
+| `court.annotation` | `ext.date`, `ext.courts` | `ui.annotations([{ court_id, label, variant? }])`, label up to 24 characters, one per court |
+| `member.list.column` | `ext.members` | `ui.column({ title, values: [{ member_id, text, variant? }] })`, title up to 20, text up to 24 characters |
+| `booking.hint` | `ext.draft` | `ui.hint([...])` with up to 6 text, badge, key_value or link blocks; answer within 1 second |
+| `booking_plan.action`, `sidebar.action` | `booking_plan.action`: the day as subject | `ui.doc([...])`, shown in a dialog after a click; `ui.hidden()` closes it |
+| `member.settings.section` | nothing extra | `ui.doc([...])`, a card on the member's own settings page |
+
+```ts
+if (ext.kind === "render" && ext.point === "court.annotation" && ext.date && ext.courts) {
+  const wet = await wetCourts(ext.date);
+  return Response.json(
+    ui.annotations(
+      ext.courts.filter((c) => wet.has(c.id)).map((c) => ({ court_id: c.id, label: "Nass", variant: "secondary" })),
+      { maxAge: 300 },
+    ),
+  );
+}
+```
+
+`booking_plan.action` and `sidebar.action` need a `label` (at most 24 characters) in the
+manifest and may set an `icon` from `APP_ACTION_ICONS`. In every declarative document,
+CheckCourt places content first, then the buttons, then the links of each level.
+
 ### OAuth with PKCE (member apps)
 
 ```ts
@@ -183,7 +212,7 @@ Import the browser entry point `@checkcourt/sdk/iframe` only; it needs no secret
 | `@checkcourt/sdk` | Server | Everything except the iframe part |
 | `@checkcourt/sdk/oauth` | Server | OAuth and installation tokens |
 | `@checkcourt/sdk/webhooks` | Server, edge | Webhook verification and event types |
-| `@checkcourt/sdk/extensions` | Server, edge | Context tokens, request verification, UI builder |
+| `@checkcourt/sdk/extensions` | Server, edge | Context tokens, request verification, UI builder, host surface builders |
 | `@checkcourt/sdk/manifest` | Anywhere | `defineManifest` and constants |
 | `@checkcourt/sdk/iframe` | Browser | `connectExtensionFrame` and messages |
 

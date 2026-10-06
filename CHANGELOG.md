@@ -3,6 +3,10 @@
 All notable changes to `@checkcourt/sdk` are listed here. The SDK is in `0.x`: minor
 versions may contain breaking changes.
 
+## 0.3.1
+
+- The compiled `dist/` is now part of the repository, so installing from GitHub no longer runs a build. This fixes global installs of tools that depend on the SDK.
+
 ## 0.3.0
 
 ### Added

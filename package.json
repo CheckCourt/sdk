@@ -1,6 +1,6 @@
 {
   "name": "@checkcourt/sdk",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Official TypeScript SDK for the CheckCourt app platform",
   "private": false,
   "license": "MIT",
@@ -64,8 +64,7 @@
     "generate": "node scripts/generate.mjs",
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "prepare": "npm run build"
+    "test": "vitest run"
   },
   "dependencies": {
     "openapi-fetch": "^0.13.0"

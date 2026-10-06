@@ -24,7 +24,7 @@ Cloudflare Workers, Vercel Edge or Deno. Its only runtime dependency is `openapi
 The package is not on npm yet. Until it is, install a tagged release straight from GitHub:
 
 ```bash
-npm install github:CheckCourt/sdk#v0.3.0
+npm install github:CheckCourt/sdk#v0.3.1
 ```
 
 npm builds the package on install. Once it is published, the package name will be

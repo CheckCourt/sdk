@@ -4,6 +4,8 @@ export const MAX_UI_BLOCKS = 50;
 export const MAX_UI_DEPTH = 3;
 export const BADGE_VARIANTS = ["default", "secondary", "outline", "destructive"];
 export const BUTTON_VARIANTS = ["default", "secondary", "outline", "destructive"];
+/** CheckCourt caps every render lifetime at this many seconds. */
+export const UI_CACHE_MAX_AGE_LIMIT = 300;
 const field = {
     text(name, label, options = {}) {
         return { type: "text", name, label, ...options };
@@ -21,17 +23,25 @@ const field = {
 function compact(value) {
     return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined));
 }
+function cacheOf(maxAge) {
+    if (maxAge === undefined)
+        return undefined;
+    if (!Number.isInteger(maxAge) || maxAge < 0) {
+        throw new RangeError(`maxAge must be a whole number of seconds >= 0, got ${maxAge}`);
+    }
+    return { maxAge };
+}
 /**
  * Builds `ui: "v1"` documents. Strings are plain text (no HTML, no Markdown); CheckCourt
  * renders them with its own design system.
  */
 export const ui = {
     doc(blocks, options = {}) {
-        return compact({ ui: UI_VERSION, blocks, toast: options.toast });
+        return compact({ ui: UI_VERSION, blocks, toast: options.toast, cache: cacheOf(options.maxAge) });
     },
     /** Nothing relevant here: no card at all. Answering `204 No Content` does the same. */
     hidden(options = {}) {
-        return compact({ ui: UI_VERSION, hidden: true, toast: options.toast });
+        return compact({ ui: UI_VERSION, hidden: true, toast: options.toast, cache: cacheOf(options.maxAge) });
     },
     text(text, options = {}) {
         return compact({ type: "text", text, tone: options.tone });

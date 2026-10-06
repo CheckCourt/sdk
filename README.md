@@ -115,6 +115,16 @@ export async function POST(request: Request) {
 }
 ```
 
+CheckCourt keeps a successful render for 30 seconds. Pass `maxAge` (seconds, at most 300)
+to change that for one answer, or `0` when the panel must always be fresh:
+
+```ts
+return Response.json(ui.doc([ui.stat("Battery", `${level} %`)], { maxAge: 0 }));
+```
+
+A `Cache-Control` response header (`no-store`, `max-age=N`) works too; `maxAge` wins when
+both are set. In your sandbox club nothing is cached.
+
 Compare `context.installation_id` and `context.tenant_id` with what you stored from
 `app.installed` before you act on a request. For the context token alone (for example in
 the backend of an iframe extension), use `verifyExtensionContext(token, secret)`.

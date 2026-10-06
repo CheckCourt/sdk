@@ -26,4 +26,23 @@ describe("ui builder", () => {
       toast: { kind: "success", message: "Erledigt" },
     });
   });
+
+  it("emits a cache hint from maxAge on visible and hidden documents", () => {
+    expect(ui.doc([], { maxAge: 120 })).toEqual({ ui: "v1", blocks: [], cache: { maxAge: 120 } });
+    expect(JSON.stringify(ui.hidden({ maxAge: 0 }))).toBe('{"ui":"v1","hidden":true,"cache":{"maxAge":0}}');
+    expect(ui.doc([], { toast: toast.success("Ok"), maxAge: 60 })).toEqual({
+      ui: "v1",
+      blocks: [],
+      toast: { kind: "success", message: "Ok" },
+      cache: { maxAge: 60 },
+    });
+    expect("cache" in ui.doc([])).toBe(false);
+  });
+
+  it("rejects a maxAge that is not a whole number of seconds", () => {
+    for (const maxAge of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => ui.doc([], { maxAge })).toThrow(RangeError);
+      expect(() => ui.hidden({ maxAge })).toThrow(RangeError);
+    }
+  });
 });

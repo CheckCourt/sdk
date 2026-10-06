@@ -112,17 +112,28 @@ export type UiToast = {
     kind: "success" | "error";
     message: string;
 };
-/** The response of a declarative extension: `{ ui: "v1", blocks, toast? }`. */
+/** CheckCourt caps every render lifetime at this many seconds. */
+export declare const UI_CACHE_MAX_AGE_LIMIT = 300;
+/**
+ * How long CheckCourt may reuse a render, in whole seconds. `0` means never. Without it
+ * CheckCourt follows the response's `Cache-Control` header, else keeps a render for 30 seconds.
+ */
+export type UiCache = {
+    maxAge: number;
+};
+/** The response of a declarative extension: `{ ui: "v1", blocks, toast?, cache? }`. */
 export interface UiDocument {
     ui: typeof UI_VERSION;
     blocks: UiBlock[];
     toast?: UiToast;
+    cache?: UiCache;
 }
 /** Tells CheckCourt to show no card for this subject and viewer; on an action, removes the panel. */
 export interface UiHiddenDocument {
     ui: typeof UI_VERSION;
     hidden: true;
     toast?: UiToast;
+    cache?: UiCache;
 }
 /** Anything a declarative extension may answer with. */
 export type UiResponse = UiDocument | UiHiddenDocument;
@@ -131,18 +142,20 @@ export type UiFormValues = Record<string, string | number | boolean>;
 type Opt<T> = {
     [K in keyof T]?: T[K];
 };
+/** Options shared by `ui.doc` and `ui.hidden`. */
+export interface UiDocumentOptions {
+    toast?: UiToast;
+    /** Seconds CheckCourt may reuse this render; `0` disables caching. Capped at 300. */
+    maxAge?: number;
+}
 /**
  * Builds `ui: "v1"` documents. Strings are plain text (no HTML, no Markdown); CheckCourt
  * renders them with its own design system.
  */
 export declare const ui: {
-    readonly doc: (blocks: UiBlock[], options?: {
-        toast?: UiToast;
-    }) => UiDocument;
+    readonly doc: (blocks: UiBlock[], options?: UiDocumentOptions) => UiDocument;
     /** Nothing relevant here: no card at all. Answering `204 No Content` does the same. */
-    readonly hidden: (options?: {
-        toast?: UiToast;
-    }) => UiHiddenDocument;
+    readonly hidden: (options?: UiDocumentOptions) => UiHiddenDocument;
     readonly text: (text: string, options?: {
         tone?: "muted";
     }) => UiTextBlock;

@@ -68,11 +68,21 @@ export type UiBlock =
 
 export type UiToast = { kind: "success" | "error"; message: string };
 
-/** The response of a declarative extension: `{ ui: "v1", blocks, toast? }`. */
+/** CheckCourt caps every render lifetime at this many seconds. */
+export const UI_CACHE_MAX_AGE_LIMIT = 300;
+
+/**
+ * How long CheckCourt may reuse a render, in whole seconds. `0` means never. Without it
+ * CheckCourt follows the response's `Cache-Control` header, else keeps a render for 30 seconds.
+ */
+export type UiCache = { maxAge: number };
+
+/** The response of a declarative extension: `{ ui: "v1", blocks, toast?, cache? }`. */
 export interface UiDocument {
   ui: typeof UI_VERSION;
   blocks: UiBlock[];
   toast?: UiToast;
+  cache?: UiCache;
 }
 
 /** Tells CheckCourt to show no card for this subject and viewer; on an action, removes the panel. */
@@ -80,6 +90,7 @@ export interface UiHiddenDocument {
   ui: typeof UI_VERSION;
   hidden: true;
   toast?: UiToast;
+  cache?: UiCache;
 }
 
 /** Anything a declarative extension may answer with. */
@@ -118,17 +129,32 @@ function compact<T extends object>(value: T): T {
   return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined)) as T;
 }
 
+/** Options shared by `ui.doc` and `ui.hidden`. */
+export interface UiDocumentOptions {
+  toast?: UiToast;
+  /** Seconds CheckCourt may reuse this render; `0` disables caching. Capped at 300. */
+  maxAge?: number;
+}
+
+function cacheOf(maxAge: number | undefined): UiCache | undefined {
+  if (maxAge === undefined) return undefined;
+  if (!Number.isInteger(maxAge) || maxAge < 0) {
+    throw new RangeError(`maxAge must be a whole number of seconds >= 0, got ${maxAge}`);
+  }
+  return { maxAge };
+}
+
 /**
  * Builds `ui: "v1"` documents. Strings are plain text (no HTML, no Markdown); CheckCourt
  * renders them with its own design system.
  */
 export const ui = {
-  doc(blocks: UiBlock[], options: { toast?: UiToast } = {}): UiDocument {
-    return compact({ ui: UI_VERSION, blocks, toast: options.toast });
+  doc(blocks: UiBlock[], options: UiDocumentOptions = {}): UiDocument {
+    return compact({ ui: UI_VERSION, blocks, toast: options.toast, cache: cacheOf(options.maxAge) });
   },
   /** Nothing relevant here: no card at all. Answering `204 No Content` does the same. */
-  hidden(options: { toast?: UiToast } = {}): UiHiddenDocument {
-    return compact({ ui: UI_VERSION, hidden: true as const, toast: options.toast });
+  hidden(options: UiDocumentOptions = {}): UiHiddenDocument {
+    return compact({ ui: UI_VERSION, hidden: true as const, toast: options.toast, cache: cacheOf(options.maxAge) });
   },
   text(text: string, options: { tone?: "muted" } = {}): UiTextBlock {
     return compact({ type: "text", text, tone: options.tone });

@@ -3,6 +3,18 @@
 All notable changes to `@checkcourt/sdk` are listed here. The SDK is in `0.x`: minor
 versions may contain breaking changes.
 
+## 0.4.0
+
+### Added
+
+- `ui.doc(blocks, { maxAge })` and `ui.hidden({ maxAge })` add `cache: { maxAge }` to the
+  document: how many seconds CheckCourt may reuse the render. `0` turns caching off.
+  CheckCourt caps the value at 300 seconds (`UI_CACHE_MAX_AGE_LIMIT`). Without it, CheckCourt
+  follows the response's `Cache-Control` header (`no-store`, `no-cache`, `max-age=N`), and
+  otherwise keeps a render for 30 seconds. A `maxAge` that is not a whole number of seconds
+  `>= 0` throws a `RangeError`.
+- Types `UiCache` and `UiDocumentOptions`, and `cache` on `UiDocument` and `UiHiddenDocument`.
+
 ## 0.3.1
 
 - The compiled `dist/` is now part of the repository, so installing from GitHub no longer runs a build. This fixes global installs of tools that depend on the SDK.

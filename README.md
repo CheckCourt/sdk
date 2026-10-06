@@ -21,18 +21,11 @@ Cloudflare Workers, Vercel Edge or Deno. Its only runtime dependency is `openapi
 
 ## Install
 
-The package is not on npm yet. Until it is, install a tagged release straight from GitHub:
-
 ```bash
-npm install https://github.com/CheckCourt/sdk/archive/refs/tags/v0.3.1.tar.gz
+npm install @checkcourt/sdk
 ```
 
-The release ships its compiled build. Once it is on npm, the package name will be
-`@checkcourt/sdk`:
-
-```bash
-npm install @checkcourt/sdk   # coming soon
-```
+Every release is also tagged on [GitHub](https://github.com/CheckCourt/sdk/releases).
 
 ## Quick start
 
@@ -192,7 +185,7 @@ Full guides and the API reference: <https://docs.checkcourt.de/docs/developer/sd
 ## Versioning
 
 The SDK follows semantic versioning but is still in `0.x`: minor releases may contain
-breaking changes until 1.0. Pin a tag and read the [changelog](CHANGELOG.md) before you
+breaking changes until 1.0. Pin a version and read the [changelog](CHANGELOG.md) before you
 upgrade.
 
 The exported constant `OPENAPI_SPEC_SHA256` is the SHA-256 of the spec the bundled types
@@ -225,6 +218,16 @@ CHECKCOURT_OPENAPI=./openapi.json npm run generate  # a local file or another UR
 
 The generated types follow the platform. A release may ship types for endpoints that are
 about to be deployed, so do not regenerate them in an unrelated pull request.
+
+### Releasing
+
+1. Bump `version` in `package.json` (`npm version <x.y.z> --no-git-tag-version`).
+2. Add the release to `CHANGELOG.md`.
+3. Run `npm run build` and commit, including the rebuilt `dist/`.
+4. Tag the commit `vX.Y.Z` and push the tag (`git push origin vX.Y.Z`).
+
+The release workflow checks that the tag matches the package version and that `dist/` is
+up to date, then publishes to npm with provenance via trusted publishing.
 
 ## License
 

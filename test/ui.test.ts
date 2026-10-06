@@ -32,6 +32,18 @@ describe("ui builder", () => {
     expect(ui.doc([], { toast: toast.success("Gespeichert") }).toast).toEqual({ kind: "success", message: "Gespeichert" });
   });
 
+  it("builds a multiline text field with rows", () => {
+    expect(ui.field.text("report", "Platzproblem melden", { multiline: true, rows: 4, max_length: 500 })).toEqual({
+      type: "text",
+      name: "report",
+      label: "Platzproblem melden",
+      multiline: true,
+      rows: 4,
+      max_length: 500,
+    });
+    expect(ui.field.text("note", "Notiz")).toEqual({ type: "text", name: "note", label: "Notiz" });
+  });
+
   it("builds a hidden document, with an optional toast", () => {
     expect(JSON.stringify(ui.hidden())).toBe('{"ui":"v1","hidden":true}');
     expect(ui.hidden({ toast: toast.success("Erledigt") })).toEqual({

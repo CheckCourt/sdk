@@ -3,6 +3,13 @@
 All notable changes to `@checkcourt/sdk` are listed here. The SDK is in `0.x`: minor
 versions may contain breaking changes.
 
+## Unreleased
+
+### Added
+
+- `ui.field.text` accepts `multiline` and `rows` (1 to 12). A multiline text field renders as
+  a text box in CheckCourt; the submitted value stays a string and `max_length` still applies.
+
 ## 0.5.0
 
 ### Added

@@ -126,6 +126,17 @@ return Response.json(ui.doc([ui.stat("Battery", `${level} %`)], { maxAge: 0 }));
 A `Cache-Control` response header (`no-store`, `max-age=N`) works too; `maxAge` wins when
 both are set. In your sandbox club nothing is cached.
 
+Forms collect input for an action. A text field becomes a multi-line box with `multiline`
+(and an optional `rows`, 1 to 12); the submitted value stays a string:
+
+```ts
+ui.form({
+  actionId: "report",
+  submitLabel: "Meldung senden",
+  fields: [ui.field.text("message", "Platzproblem melden", { multiline: true, rows: 4, max_length: 500 })],
+});
+```
+
 Compare `context.installation_id` and `context.tenant_id` with what you stored from
 `app.installed` before you act on a request. For the context token alone (for example in
 the backend of an iframe extension), use `verifyExtensionContext(token, secret)`.

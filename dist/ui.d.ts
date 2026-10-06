@@ -62,6 +62,10 @@ export type UiTextField = {
     default?: string;
     required?: boolean;
     max_length?: number;
+    /** Renders a multi-line text box instead of a single-line input. The value stays a string. */
+    multiline?: boolean;
+    /** Visible rows of the text box when `multiline` is set; 1 to 12. */
+    rows?: number;
 };
 export type UiNumberField = {
     type: "number";

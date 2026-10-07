@@ -38,6 +38,9 @@ export const EXTENSION_POINT_SCOPE = {
 export const STATIC_ACTION_POINTS = ["booking_plan.action", "sidebar.action"];
 /** Longest `label` of a static action. */
 export const STATIC_ACTION_LABEL_MAX = 24;
+/** Bounds of an iframe extension's initial `height` in pixels. */
+export const IFRAME_EXTENSION_HEIGHT_MIN = 120;
+export const IFRAME_EXTENSION_HEIGHT_MAX = 2000;
 /** lucide icon names a static action or `nav.page` may use as `icon`. */
 export const APP_ACTION_ICONS = [
     "bell",

@@ -6,7 +6,7 @@ export const clubApp = defineManifest({
   tenantScopes: ["bookings:read", "courts:read", "members:read"],
   events: ["booking.created", "booking.cancelled", "court.locked"],
   extensions: [
-    { point: "app.settings", kind: "iframe", url: "https://door.example.de/settings" },
+    { point: "app.settings", kind: "iframe", url: "https://door.example.de/settings", height: 480 },
     { point: "booking.detail.panel", kind: "declarative", url: "https://door.example.de/ext/booking" },
     { point: "booking.action", kind: "declarative", url: "https://door.example.de/ext/open", label: "Tür öffnen" },
     { point: "booking.action", kind: "declarative", url: "https://door.example.de/ext/code", label: "Code senden" },

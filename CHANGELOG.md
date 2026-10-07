@@ -3,6 +3,16 @@
 All notable changes to `@checkcourt/sdk` are listed here. The SDK is in `0.x`: minor
 versions may contain breaking changes.
 
+## 0.9.0
+
+### Added
+
+- Optional `height` on iframe extensions in the manifest: the frame's initial height in whole
+  pixels, from `IFRAME_EXTENSION_HEIGHT_MIN` (120) to `IFRAME_EXTENSION_HEIGHT_MAX` (2000).
+  `defineManifest` rejects it on declarative extensions at compile time. Without it a frame
+  starts at 240 pixels and a `nav.page` frame fills the page; `checkcourt:resize` messages
+  still override the height.
+
 ## 0.8.0
 
 ### Added

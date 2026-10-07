@@ -83,18 +83,31 @@ export declare const STATIC_ACTION_POINTS: readonly ["booking_plan.action", "sid
 export type StaticActionPoint = (typeof STATIC_ACTION_POINTS)[number];
 /** Longest `label` of a static action. */
 export declare const STATIC_ACTION_LABEL_MAX = 24;
+/** Bounds of an iframe extension's initial `height` in pixels. */
+export declare const IFRAME_EXTENSION_HEIGHT_MIN = 120;
+export declare const IFRAME_EXTENSION_HEIGHT_MAX = 2000;
 /** lucide icon names a static action or `nav.page` may use as `icon`. */
 export declare const APP_ACTION_ICONS: readonly ["bell", "calendar", "calendar-check", "camera", "chart-column", "circle-help", "clipboard-list", "clock", "cloud-rain", "door-open", "file-text", "flag", "heart-pulse", "info", "key-round", "lightbulb", "link", "list-checks", "lock-open", "map-pin", "megaphone", "message-square", "receipt", "send", "sparkles", "star", "sun", "thermometer", "ticket", "triangle-alert", "trophy", "user-round", "users", "wallet", "wrench"];
 export type AppActionIcon = (typeof APP_ACTION_ICONS)[number];
 /** Every scope an app may request. Role, app, webhook, key, billing and AVV management are reserved for people. */
 export declare const GRANTABLE_SCOPES: readonly ["courts:read", "courts:read_confidential", "courts:write", "bookings:read", "bookings:read_confidential", "bookings:write", "bookings:cancel", "bookings:edit", "bookings:export", "members:read", "members:read_confidential", "members:invite", "members:write", "members:delete", "teams:read", "teams:write", "policies:read", "policies:read_confidential", "policies:write", "categories:read", "categories:write", "invites:read", "invites:write", "settings:read", "settings:read_confidential", "settings:write", "guest_fees:read", "guest_fees:write", "audit:read", "announcements:read", "announcements:write", "events:read", "events:write", "posts:read", "posts:write", "posts:moderate", "court_layout:read", "court_layout:write", "work_hours:read", "work_hours:write", "work_hours:manage", "compliance:read", "kiosk:manage", "trainer_blocks:write", "analytics:read", "embeds:manage", "webhooks:read", "notifications:send"];
 export type GrantableScope = (typeof GRANTABLE_SCOPES)[number];
+type KindOf<K extends ExtensionKind> = K extends "iframe" ? {
+    kind: K;
+    /**
+     * Initial frame height in whole pixels, `IFRAME_EXTENSION_HEIGHT_MIN` to `IFRAME_EXTENSION_HEIGHT_MAX`.
+     * Without it the frame starts at 240 pixels, a `nav.page` fills the page. Resize messages override it.
+     */
+    height?: number;
+} : {
+    kind: K;
+    height?: never;
+};
 type ExtensionOf<P extends ExtensionPoint> = {
     point: P;
-    kind: (typeof EXTENSION_POINTS)[P]["kinds"][number];
     /** https; http://localhost is accepted outside production. */
     url: string;
-} & (P extends StaticActionPoint ? {
+} & KindOf<(typeof EXTENSION_POINTS)[P]["kinds"][number]> & (P extends StaticActionPoint ? {
     /** Button text, 1 to 24 characters (`STATIC_ACTION_LABEL_MAX`). */
     label: string;
     icon?: AppActionIcon;
@@ -113,7 +126,7 @@ type ExtensionOf<P extends ExtensionPoint> = {
     icon?: never;
 });
 /**
- * One entry of `extensions`; `kind`, `label` and `icon` are checked per point at compile time.
+ * One entry of `extensions`; `kind`, `label`, `icon` and `height` are checked per point at compile time.
  * Every point may appear once, except `booking.action`; an app has at most one `nav.page`.
  */
 export type ManifestExtension = {

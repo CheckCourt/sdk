@@ -4,6 +4,8 @@ import {
   APP_ACTION_ICONS,
   EXTENSION_POINTS,
   EXTENSION_POINT_SCOPE,
+  IFRAME_EXTENSION_HEIGHT_MAX,
+  IFRAME_EXTENSION_HEIGHT_MIN,
   STATIC_ACTION_LABEL_MAX,
   STATIC_ACTION_POINTS,
   defineManifest,
@@ -75,6 +77,29 @@ describe("manifest", () => {
       extensions: [{ point: "nav.page", kind: "iframe", url: "https://a.example.de/page", label: "Trainingsplan", icon: "calendar" }],
     });
     expect(m.extensions[0].point).toBe("nav.page");
+  });
+
+  it("accepts an initial height on iframe extensions only", () => {
+    expect([IFRAME_EXTENSION_HEIGHT_MIN, IFRAME_EXTENSION_HEIGHT_MAX]).toEqual([120, 2000]);
+    const m = defineManifest({
+      ...base,
+      tenantScopes: ["bookings:read"],
+      extensions: [
+        { point: "nav.page", kind: "iframe", url: "https://a.example.de/page", label: "Homepage", icon: "calendar", height: 900 },
+        { point: "booking.detail.panel", kind: "iframe", url: "https://a.example.de/booking", height: 320 },
+      ],
+    });
+    expect(m.extensions.map((e) => e.height)).toEqual([900, 320]);
+
+    const rejected: ManifestExtension[] = [
+      // @ts-expect-error height only on iframe extensions
+      { point: "nav.page", kind: "declarative", url: "https://a.example.de/page", label: "Seite", icon: "calendar", height: 900 },
+      // @ts-expect-error dashboard.widget is declarative only, so no height
+      { point: "dashboard.widget", kind: "declarative", url: "https://a.example.de/w", height: 300 },
+      // @ts-expect-error height is a number of pixels
+      { point: "app.settings", kind: "iframe", url: "https://a.example.de/settings", height: "300px" },
+    ];
+    expect(rejected).toHaveLength(3);
   });
 
   it("rejects nav.page without label or icon at compile time", () => {

@@ -53,6 +53,10 @@ export type StaticActionPoint = (typeof STATIC_ACTION_POINTS)[number];
 /** Longest `label` of a static action. */
 export const STATIC_ACTION_LABEL_MAX = 24;
 
+/** Bounds of an iframe extension's initial `height` in pixels. */
+export const IFRAME_EXTENSION_HEIGHT_MIN = 120;
+export const IFRAME_EXTENSION_HEIGHT_MAX = 2000;
+
 /** lucide icon names a static action or `nav.page` may use as `icon`. */
 export const APP_ACTION_ICONS = [
   "bell",
@@ -148,12 +152,22 @@ export const GRANTABLE_SCOPES = [
 
 export type GrantableScope = (typeof GRANTABLE_SCOPES)[number];
 
+type KindOf<K extends ExtensionKind> = K extends "iframe"
+  ? {
+      kind: K;
+      /**
+       * Initial frame height in whole pixels, `IFRAME_EXTENSION_HEIGHT_MIN` to `IFRAME_EXTENSION_HEIGHT_MAX`.
+       * Without it the frame starts at 240 pixels, a `nav.page` fills the page. Resize messages override it.
+       */
+      height?: number;
+    }
+  : { kind: K; height?: never };
+
 type ExtensionOf<P extends ExtensionPoint> = {
   point: P;
-  kind: (typeof EXTENSION_POINTS)[P]["kinds"][number];
   /** https; http://localhost is accepted outside production. */
   url: string;
-} & (P extends StaticActionPoint
+} & KindOf<(typeof EXTENSION_POINTS)[P]["kinds"][number]> & (P extends StaticActionPoint
   ? {
       /** Button text, 1 to 24 characters (`STATIC_ACTION_LABEL_MAX`). */
       label: string;
@@ -172,7 +186,7 @@ type ExtensionOf<P extends ExtensionPoint> = {
         : { label?: string; icon?: never });
 
 /**
- * One entry of `extensions`; `kind`, `label` and `icon` are checked per point at compile time.
+ * One entry of `extensions`; `kind`, `label`, `icon` and `height` are checked per point at compile time.
  * Every point may appear once, except `booking.action`; an app has at most one `nav.page`.
  */
 export type ManifestExtension = { [P in ExtensionPoint]: ExtensionOf<P> }[ExtensionPoint];

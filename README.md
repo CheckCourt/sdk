@@ -292,6 +292,19 @@ frame.navigate("/booking?date=2026-10-07");
 
 Import the browser entry point `@checkcourt/sdk/iframe` only; it needs no secrets.
 
+The frame starts at 240 pixels, a `nav.page` frame fills the page. Set `height` on the
+manifest entry (whole pixels, `IFRAME_EXTENSION_HEIGHT_MIN` to `IFRAME_EXTENSION_HEIGHT_MAX`,
+120 to 2000) to start at another height; `height` is for iframe extensions only.
+Resize messages from `connectExtensionFrame` replace either value:
+
+```ts
+{ point: "nav.page", kind: "iframe", url: "https://app.example.de/page", label: "Homepage", icon: "calendar", height: 900 }
+```
+
+Every app has a signing secret (`whsec_…`) from the moment it is created, with or without a
+webhook URL. Verify the context token with it in your backend; you can show it once and
+rotate it in the developer portal (your app → *Webhooks* → *Signatur-Secret*).
+
 ## Entry points
 
 | Import | Runs in | Contents |

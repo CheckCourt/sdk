@@ -69,6 +69,7 @@ export interface PointCapabilities {
   "booking.hint": Record<string, never>;
   "booking_plan.action": BookingPlanCapabilities;
   "sidebar.action": Record<string, never>;
+  "nav.page": Record<string, never>;
 }
 
 export interface PointSubject {
@@ -85,6 +86,7 @@ export interface PointSubject {
   /** `id` is the plan's day, YYYY-MM-DD. */
   "booking_plan.action": { type: "booking_plan"; id: string };
   "sidebar.action": null;
+  "nav.page": null;
 }
 
 interface ContextClaimsOf<P extends ExtensionPoint> {

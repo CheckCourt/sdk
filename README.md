@@ -210,6 +210,7 @@ with the matching builder; each throws when the answer would break CheckCourt's 
 | `booking_plan.action` | `ext.date`, `ext.courts` (and the day as subject) | `ui.doc([...])`, shown in a dialog after a click; `ui.hidden()` closes it |
 | `sidebar.action` | nothing extra | `ui.doc([...])`, shown in a dialog after a click; `ui.hidden()` closes it |
 | `member.settings.section` | nothing extra | `ui.doc([...])`, a card on the member's own settings page |
+| `nav.page` | nothing extra | `ui.doc([...])` (or an iframe), the content of the app's own page |
 
 ```ts
 if (ext.kind === "render" && ext.point === "court.annotation" && ext.date && ext.courts) {
@@ -226,6 +227,24 @@ if (ext.kind === "render" && ext.point === "court.annotation" && ext.date && ext
 `booking_plan.action` and `sidebar.action` need a `label` (at most 24 characters) in the
 manifest and may set an `icon` from `APP_ACTION_ICONS`. In every declarative document,
 CheckCourt places content first, then the buttons, then the links of each level.
+
+`nav.page` gives your app an entry in the main navigation and a full page of its own at
+`/apps/<installation id>/<index>`. It needs a `label` (at most 24 characters, also the page
+title) and an `icon` from `APP_ACTION_ICONS`, may be declarative or an iframe, and appears at
+most once per manifest. A club installation's entry is shown to every member of the club, a
+member installation's entry only to that member:
+
+```ts
+defineManifest({
+  installTargets: ["tenant"],
+  extensions: [{ point: "nav.page", kind: "declarative", url: "https://app.example.de/ext/page", label: "Trainingsplan", icon: "calendar" }],
+  dataProcessing: { categories: ["Trainingsdaten"], purpose: "Zeigt den Trainingsplan", storageLocation: "EU", avvRequired: false },
+});
+
+if (ext.point === "nav.page") {
+  return Response.json(ui.doc([ui.heading("Diese Woche"), ui.text("Dienstag 18 Uhr: Jugendtraining")]));
+}
+```
 
 ### OAuth with PKCE (member apps)
 

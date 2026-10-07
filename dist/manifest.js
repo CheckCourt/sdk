@@ -16,6 +16,7 @@ export const EXTENSION_POINTS = {
     "booking.hint": { targets: ["tenant"], kinds: ["declarative"] },
     "booking_plan.action": { targets: ["tenant"], kinds: ["declarative"] },
     "sidebar.action": { targets: ["tenant", "user"], kinds: ["declarative"] },
+    "nav.page": { targets: ["tenant", "user"], kinds: ["declarative", "iframe"] },
 };
 /** Scope the installation needs (in `tenantScopes` or `userScopes`) before the point hands it a subject id. */
 export const EXTENSION_POINT_SCOPE = {
@@ -31,12 +32,13 @@ export const EXTENSION_POINT_SCOPE = {
     "booking.hint": "bookings:read",
     "booking_plan.action": "courts:read",
     "sidebar.action": null,
+    "nav.page": null,
 };
 /** Buttons CheckCourt draws from the manifest alone, before the app is ever called. */
 export const STATIC_ACTION_POINTS = ["booking_plan.action", "sidebar.action"];
 /** Longest `label` of a static action. */
 export const STATIC_ACTION_LABEL_MAX = 24;
-/** lucide icon names a static action may use as `icon`. */
+/** lucide icon names a static action or `nav.page` may use as `icon`. */
 export const APP_ACTION_ICONS = [
     "bell",
     "calendar",

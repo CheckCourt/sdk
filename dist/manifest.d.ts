@@ -56,6 +56,10 @@ export declare const EXTENSION_POINTS: {
         readonly targets: readonly ["tenant", "user"];
         readonly kinds: readonly ["declarative"];
     };
+    readonly "nav.page": {
+        readonly targets: readonly ["tenant", "user"];
+        readonly kinds: readonly ["declarative", "iframe"];
+    };
 };
 export type ExtensionPoint = keyof typeof EXTENSION_POINTS;
 /** Scope the installation needs (in `tenantScopes` or `userScopes`) before the point hands it a subject id. */
@@ -72,13 +76,14 @@ export declare const EXTENSION_POINT_SCOPE: {
     readonly "booking.hint": "bookings:read";
     readonly "booking_plan.action": "courts:read";
     readonly "sidebar.action": null;
+    readonly "nav.page": null;
 };
 /** Buttons CheckCourt draws from the manifest alone, before the app is ever called. */
 export declare const STATIC_ACTION_POINTS: readonly ["booking_plan.action", "sidebar.action"];
 export type StaticActionPoint = (typeof STATIC_ACTION_POINTS)[number];
 /** Longest `label` of a static action. */
 export declare const STATIC_ACTION_LABEL_MAX = 24;
-/** lucide icon names a static action may use as `icon`. */
+/** lucide icon names a static action or `nav.page` may use as `icon`. */
 export declare const APP_ACTION_ICONS: readonly ["bell", "calendar", "calendar-check", "camera", "chart-column", "circle-help", "clipboard-list", "clock", "cloud-rain", "door-open", "file-text", "flag", "heart-pulse", "info", "key-round", "lightbulb", "link", "list-checks", "lock-open", "map-pin", "megaphone", "message-square", "receipt", "send", "sparkles", "star", "sun", "thermometer", "ticket", "triangle-alert", "trophy", "user-round", "users", "wallet", "wrench"];
 export type AppActionIcon = (typeof APP_ACTION_ICONS)[number];
 /** Every scope an app may request. Role, app, webhook, key, billing and AVV management are reserved for people. */
@@ -93,6 +98,10 @@ type ExtensionOf<P extends ExtensionPoint> = {
     /** Button text, 1 to 24 characters (`STATIC_ACTION_LABEL_MAX`). */
     label: string;
     icon?: AppActionIcon;
+} : P extends "nav.page" ? {
+    /** Navigation entry and page title, 1 to 24 characters (`STATIC_ACTION_LABEL_MAX`). */
+    label: string;
+    icon: AppActionIcon;
 } : P extends "booking.action" ? {
     label: string;
     icon?: never;
@@ -105,7 +114,7 @@ type ExtensionOf<P extends ExtensionPoint> = {
 });
 /**
  * One entry of `extensions`; `kind`, `label` and `icon` are checked per point at compile time.
- * Every point may appear once, except `booking.action`.
+ * Every point may appear once, except `booking.action`; an app has at most one `nav.page`.
  */
 export type ManifestExtension = {
     [P in ExtensionPoint]: ExtensionOf<P>;

@@ -3,6 +3,21 @@
 All notable changes to `@checkcourt/sdk` are listed here. The SDK is in `0.x`: minor
 versions may contain breaking changes.
 
+## 0.8.0
+
+### Added
+
+- Extension point `nav.page` (club and member apps, declarative or iframe, no subject, no
+  required scope) in `EXTENSION_POINTS`, `EXTENSION_POINT_SCOPE`, `PointSubject` and
+  `PointCapabilities`. It adds an entry to CheckCourt's main navigation that opens a full
+  page with the app's UI at `/apps/<installation id>/<index>`. A club installation's entry
+  is visible to every member, a member installation's entry only to that member.
+- `nav.page` requires a `label` (at most 24 characters, `STATIC_ACTION_LABEL_MAX`) and an
+  `icon` from `APP_ACTION_ICONS`; `defineManifest` rejects either missing at compile time.
+  CheckCourt accepts at most one `nav.page` per manifest.
+- `verifyExtensionRequest` verifies `nav.page` renders and actions; they carry no extra
+  fields.
+
 ## 0.7.0
 
 ### Changed

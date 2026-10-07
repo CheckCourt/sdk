@@ -53,6 +53,7 @@ export interface PointCapabilities {
     "booking.hint": Record<string, never>;
     "booking_plan.action": BookingPlanCapabilities;
     "sidebar.action": Record<string, never>;
+    "nav.page": Record<string, never>;
 }
 export interface PointSubject {
     "app.settings": {
@@ -83,6 +84,7 @@ export interface PointSubject {
         id: string;
     };
     "sidebar.action": null;
+    "nav.page": null;
 }
 interface ContextClaimsOf<P extends ExtensionPoint> {
     iss: typeof CONTEXT_ISSUER;

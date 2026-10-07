@@ -24,6 +24,7 @@ export const clubApp = defineManifest({
       icon: "door-open",
     },
     { point: "sidebar.action", kind: "declarative", url: "https://door.example.de/ext/status", label: "Türstatus" },
+    { point: "nav.page", kind: "declarative", url: "https://door.example.de/ext/page", label: "Türprotokoll", icon: "key-round" },
   ],
   settingsSchema: {
     type: "object",

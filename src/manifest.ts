@@ -25,6 +25,7 @@ export const EXTENSION_POINTS = {
   "booking.hint": { targets: ["tenant"], kinds: ["declarative"] },
   "booking_plan.action": { targets: ["tenant"], kinds: ["declarative"] },
   "sidebar.action": { targets: ["tenant", "user"], kinds: ["declarative"] },
+  "nav.page": { targets: ["tenant", "user"], kinds: ["declarative", "iframe"] },
 } as const;
 
 export type ExtensionPoint = keyof typeof EXTENSION_POINTS;
@@ -43,6 +44,7 @@ export const EXTENSION_POINT_SCOPE = {
   "booking.hint": "bookings:read",
   "booking_plan.action": "courts:read",
   "sidebar.action": null,
+  "nav.page": null,
 } as const satisfies Record<ExtensionPoint, GrantableScope | null>;
 
 /** Buttons CheckCourt draws from the manifest alone, before the app is ever called. */
@@ -51,7 +53,7 @@ export type StaticActionPoint = (typeof STATIC_ACTION_POINTS)[number];
 /** Longest `label` of a static action. */
 export const STATIC_ACTION_LABEL_MAX = 24;
 
-/** lucide icon names a static action may use as `icon`. */
+/** lucide icon names a static action or `nav.page` may use as `icon`. */
 export const APP_ACTION_ICONS = [
   "bell",
   "calendar",
@@ -157,15 +159,21 @@ type ExtensionOf<P extends ExtensionPoint> = {
       label: string;
       icon?: AppActionIcon;
     }
-  : P extends "booking.action"
-    ? { /** Button text, 1 to 40 characters. */ label: string; icon?: never }
-    : P extends "member.list.column"
-      ? { /** Column header until the app's first answer arrives, ideally the same text as `column.title`. */ label?: string; icon?: never }
-      : { label?: string; icon?: never });
+  : P extends "nav.page"
+    ? {
+        /** Navigation entry and page title, 1 to 24 characters (`STATIC_ACTION_LABEL_MAX`). */
+        label: string;
+        icon: AppActionIcon;
+      }
+    : P extends "booking.action"
+      ? { /** Button text, 1 to 40 characters. */ label: string; icon?: never }
+      : P extends "member.list.column"
+        ? { /** Column header until the app's first answer arrives, ideally the same text as `column.title`. */ label?: string; icon?: never }
+        : { label?: string; icon?: never });
 
 /**
  * One entry of `extensions`; `kind`, `label` and `icon` are checked per point at compile time.
- * Every point may appear once, except `booking.action`.
+ * Every point may appear once, except `booking.action`; an app has at most one `nav.page`.
  */
 export type ManifestExtension = { [P in ExtensionPoint]: ExtensionOf<P> }[ExtensionPoint];
 

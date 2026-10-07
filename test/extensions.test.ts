@@ -176,6 +176,17 @@ describe("host surface requests", () => {
     ).toBe("context_mismatch");
   });
 
+  it("verifies nav.page renders and actions without a subject", async () => {
+    const token = surfaceClaims("nav.page", null);
+    const render = await verify(token, { point: "nav.page", subject: null });
+    expect(render).toEqual({ kind: "render", context: expect.anything(), point: "nav.page", subject: null });
+    const action = await verify(token, { point: "nav.page", subject: null, action_id: "save", values: { note: "x" } });
+    expect(action).toMatchObject({ kind: "action", point: "nav.page", actionId: "save", values: { note: "x" } });
+    expect(await reason(verify(token, { point: "nav.page", subject: { type: "booking", id: "b_1" } }))).toBe(
+      "context_mismatch",
+    );
+  });
+
   it("adds no surface fields to other points", async () => {
     const token = surfaceClaims("sidebar.action", null);
     const r = await verify(token, { point: "sidebar.action", subject: null, date: "2026-10-07" });

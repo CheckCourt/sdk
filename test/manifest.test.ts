@@ -31,9 +31,11 @@ describe("manifest", () => {
       "booking.hint",
       "booking_plan.action",
       "sidebar.action",
+      "nav.page",
     ]);
     expect(EXTENSION_POINTS["member.settings.section"]).toEqual({ targets: ["user"], kinds: ["declarative", "iframe"] });
     expect(EXTENSION_POINTS["sidebar.action"]).toEqual({ targets: ["tenant", "user"], kinds: ["declarative"] });
+    expect(EXTENSION_POINTS["nav.page"]).toEqual({ targets: ["tenant", "user"], kinds: ["declarative", "iframe"] });
     expect(EXTENSION_POINT_SCOPE).toMatchObject({
       "court.annotation": "courts:read",
       "member.list.column": "members:read",
@@ -41,6 +43,7 @@ describe("manifest", () => {
       "booking.hint": "bookings:read",
       "booking_plan.action": "courts:read",
       "sidebar.action": null,
+      "nav.page": null,
     });
     expect(Object.keys(EXTENSION_POINT_SCOPE).sort()).toEqual(Object.keys(EXTENSION_POINTS).sort());
   });
@@ -65,6 +68,27 @@ describe("manifest", () => {
     expect(m.extensions).toHaveLength(2);
   });
 
+  it("accepts nav.page with a label and an icon, declarative or iframe", () => {
+    const m = defineManifest({
+      ...base,
+      installTargets: ["tenant", "user"],
+      extensions: [{ point: "nav.page", kind: "iframe", url: "https://a.example.de/page", label: "Trainingsplan", icon: "calendar" }],
+    });
+    expect(m.extensions[0].point).toBe("nav.page");
+  });
+
+  it("rejects nav.page without label or icon at compile time", () => {
+    const rejected: ManifestExtension[] = [
+      // @ts-expect-error nav.page needs a label
+      { point: "nav.page", kind: "declarative", url: "https://a.example.de/page", icon: "sun" },
+      // @ts-expect-error nav.page needs an icon
+      { point: "nav.page", kind: "declarative", url: "https://a.example.de/page", label: "Seite" },
+      // @ts-expect-error not a known icon
+      { point: "nav.page", kind: "declarative", url: "https://a.example.de/page", label: "Seite", icon: "rocket" },
+    ];
+    expect(rejected).toHaveLength(3);
+  });
+
   it("rejects missing labels and misplaced or unknown icons at compile time", () => {
     const rejected: ManifestExtension[] = [
       // @ts-expect-error static actions need a label
@@ -86,7 +110,7 @@ describe("manifest", () => {
   it("keeps the examples within the platform's label limit", () => {
     for (const manifest of Object.values(exampleManifests) as Manifest[]) {
       for (const ext of (manifest.extensions ?? []) as readonly ManifestExtension[]) {
-        if ((STATIC_ACTION_POINTS as readonly string[]).includes(ext.point)) {
+        if ([...STATIC_ACTION_POINTS, "nav.page"].includes(ext.point)) {
           expect(ext.label?.length).toBeLessThanOrEqual(STATIC_ACTION_LABEL_MAX);
         }
       }

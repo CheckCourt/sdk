@@ -82,7 +82,7 @@ export declare const STATIC_ACTION_LABEL_MAX = 24;
 export declare const APP_ACTION_ICONS: readonly ["bell", "calendar", "calendar-check", "camera", "chart-column", "circle-help", "clipboard-list", "clock", "cloud-rain", "door-open", "file-text", "flag", "heart-pulse", "info", "key-round", "lightbulb", "link", "list-checks", "lock-open", "map-pin", "megaphone", "message-square", "receipt", "send", "sparkles", "star", "sun", "thermometer", "ticket", "triangle-alert", "trophy", "user-round", "users", "wallet", "wrench"];
 export type AppActionIcon = (typeof APP_ACTION_ICONS)[number];
 /** Every scope an app may request. Role, app, webhook, key, billing and AVV management are reserved for people. */
-export declare const GRANTABLE_SCOPES: readonly ["courts:read", "courts:read_confidential", "courts:write", "bookings:read", "bookings:read_confidential", "bookings:write", "bookings:cancel", "bookings:edit", "bookings:export", "members:read", "members:read_confidential", "members:invite", "members:write", "members:delete", "teams:read", "teams:write", "policies:read", "policies:read_confidential", "policies:write", "categories:read", "categories:write", "invites:read", "invites:write", "settings:read", "settings:read_confidential", "settings:write", "guest_fees:read", "guest_fees:write", "audit:read", "announcements:read", "announcements:write", "events:read", "events:write", "posts:read", "posts:write", "posts:moderate", "court_layout:read", "court_layout:write", "work_hours:read", "work_hours:write", "work_hours:manage", "compliance:read", "kiosk:manage", "trainer_blocks:write", "analytics:read", "embeds:manage", "webhooks:read"];
+export declare const GRANTABLE_SCOPES: readonly ["courts:read", "courts:read_confidential", "courts:write", "bookings:read", "bookings:read_confidential", "bookings:write", "bookings:cancel", "bookings:edit", "bookings:export", "members:read", "members:read_confidential", "members:invite", "members:write", "members:delete", "teams:read", "teams:write", "policies:read", "policies:read_confidential", "policies:write", "categories:read", "categories:write", "invites:read", "invites:write", "settings:read", "settings:read_confidential", "settings:write", "guest_fees:read", "guest_fees:write", "audit:read", "announcements:read", "announcements:write", "events:read", "events:write", "posts:read", "posts:write", "posts:moderate", "court_layout:read", "court_layout:write", "work_hours:read", "work_hours:write", "work_hours:manage", "compliance:read", "kiosk:manage", "trainer_blocks:write", "analytics:read", "embeds:manage", "webhooks:read", "notifications:send"];
 export type GrantableScope = (typeof GRANTABLE_SCOPES)[number];
 type ExtensionOf<P extends ExtensionPoint> = {
     point: P;
@@ -147,6 +147,72 @@ export interface DataProcessing {
     storageLocation: "EU" | "non-EU";
     avvRequired: boolean;
 }
+/** Club objects apps can attach metadata to. */
+export declare const SHARED_OBJECT_TYPES: readonly ["booking", "court", "member"];
+export type SharedObjectType = (typeof SHARED_OBJECT_TYPES)[number];
+/** Read scope both the sharing and the reading app need in `tenantScopes` for an object type. */
+export declare const SHARED_OBJECT_SCOPE: {
+    readonly booking: "bookings:read";
+    readonly court: "courts:read";
+    readonly member: "members:read";
+};
+/** Metadata keys and event names: `^[a-z][a-z0-9_]{0,39}$`. */
+export declare const CONNECTION_NAME_PATTERN: RegExp;
+/** Serialized size limit of a metadata value and of event data. */
+export declare const MAX_SHARED_VALUE_BYTES = 4096;
+/** A metadata key the app writes on club objects and lets other apps read once the club approves. */
+export interface SharedMetadata {
+    key: string;
+    object: SharedObjectType;
+    /** Shown to the club when it approves a connection, 1 to 200 characters, e.g. "Videolink". */
+    description: string;
+    /** 1 to 10 categories, shown in the approval dialog, e.g. ["Videoaufzeichnung"]. */
+    data_categories: readonly string[];
+}
+/** Metadata of another app this app wants to read: that app's slug, the key and the object type. */
+export interface ReadMetadata {
+    app: string;
+    key: string;
+    object: SharedObjectType;
+}
+export type AppEventProperty = {
+    type: "string";
+    description?: string;
+    /** Excludes `maxLength`. */
+    enum?: readonly string[];
+    maxLength?: number;
+} | {
+    type: "number" | "integer";
+    description?: string;
+    minimum?: number;
+    maximum?: number;
+} | {
+    type: "boolean";
+    description?: string;
+};
+/** JSON-Schema subset for event data: flat objects of strings, numbers, integers and booleans (at most 30 properties). */
+export interface AppEventSchema {
+    type: "object";
+    /** Keys match `^[a-zA-Z][a-zA-Z0-9_]{0,39}$`. */
+    properties: Record<string, AppEventProperty>;
+    required?: readonly string[];
+    /** `false` rejects unknown keys. */
+    additionalProperties?: boolean;
+}
+/** An event the app publishes with `publishAppEvent`; subscribers receive it as `app.<your slug>.<name>`. */
+export interface EmittedEvent {
+    name: string;
+    /** 1 to 200 characters, shown in the approval dialog. */
+    description: string;
+    data_categories: readonly string[];
+    /** Published data is validated against it. */
+    schema?: AppEventSchema;
+}
+/** An event of another app this app wants to receive. */
+export interface SubscribedEvent {
+    app: string;
+    event: string;
+}
 export interface Manifest {
     manifestVersion?: typeof MANIFEST_VERSION;
     installTargets: readonly InstallTarget[];
@@ -160,6 +226,18 @@ export interface Manifest {
     extensions?: readonly ManifestExtension[];
     settingsSchema?: SettingsSchema;
     dataProcessing: DataProcessing;
+    /** Metadata other apps may read (at most 20). Club installations only. */
+    shares?: {
+        metadata: readonly SharedMetadata[];
+    };
+    /** Metadata of other apps this app reads (at most 50). Club installations only. */
+    reads?: {
+        metadata: readonly ReadMetadata[];
+    };
+    /** Events this app publishes to connected apps (at most 20). Club installations only. */
+    emits?: readonly EmittedEvent[];
+    /** Events of other apps this app receives (at most 50). Club installations only. */
+    subscribes?: readonly SubscribedEvent[];
 }
 /**
  * Identity function that gives editor completion and compile-time checks for a manifest.

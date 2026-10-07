@@ -4,6 +4,11 @@ import { hmacSha256, hmacSha256Verify } from "./internal/hmac.js";
 import type { WebhookEvent } from "./events.js";
 
 export type {
+  AppEvent,
+  AppEventType,
+  AppMetadataChangedEvent,
+  AppMetadataChangedEventData,
+  ConnectionEvent,
   AppLifecycleEventData,
   BookingEventData,
   CourtLockEventData,
@@ -16,7 +21,15 @@ export type {
   WebhookEvent,
   WebhookEventOf,
 } from "./events.js";
-export { APP_LIFECYCLE_EVENT_TYPES, EVENT_TYPES, SUBSCRIBABLE_EVENT_TYPES } from "./events.js";
+export {
+  APP_LIFECYCLE_EVENT_TYPES,
+  EVENT_TYPES,
+  METADATA_CHANGED_EVENT_TYPE,
+  SUBSCRIBABLE_EVENT_TYPES,
+  appEventType,
+  isAppEvent,
+  isMetadataChangedEvent,
+} from "./events.js";
 export { WebhookSignatureError, type WebhookSignatureFailure } from "./errors.js";
 
 export const SIGNATURE_HEADER = "CheckCourt-Signature";

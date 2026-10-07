@@ -140,6 +140,8 @@ export const GRANTABLE_SCOPES = [
   "analytics:read",
   "embeds:manage",
   "webhooks:read",
+  // App-only: no club role holds it; a member app gets it from the member's consent.
+  "notifications:send",
 ] as const;
 
 export type GrantableScope = (typeof GRANTABLE_SCOPES)[number];
@@ -203,6 +205,77 @@ export interface DataProcessing {
   avvRequired: boolean;
 }
 
+/** Club objects apps can attach metadata to. */
+export const SHARED_OBJECT_TYPES = ["booking", "court", "member"] as const;
+export type SharedObjectType = (typeof SHARED_OBJECT_TYPES)[number];
+
+/** Read scope both the sharing and the reading app need in `tenantScopes` for an object type. */
+export const SHARED_OBJECT_SCOPE = {
+  booking: "bookings:read",
+  court: "courts:read",
+  member: "members:read",
+} as const satisfies Record<SharedObjectType, GrantableScope>;
+
+/** Metadata keys and event names: `^[a-z][a-z0-9_]{0,39}$`. */
+export const CONNECTION_NAME_PATTERN = /^[a-z][a-z0-9_]{0,39}$/;
+
+/** Serialized size limit of a metadata value and of event data. */
+export const MAX_SHARED_VALUE_BYTES = 4096;
+
+/** A metadata key the app writes on club objects and lets other apps read once the club approves. */
+export interface SharedMetadata {
+  key: string;
+  object: SharedObjectType;
+  /** Shown to the club when it approves a connection, 1 to 200 characters, e.g. "Videolink". */
+  description: string;
+  /** 1 to 10 categories, shown in the approval dialog, e.g. ["Videoaufzeichnung"]. */
+  data_categories: readonly string[];
+}
+
+/** Metadata of another app this app wants to read: that app's slug, the key and the object type. */
+export interface ReadMetadata {
+  app: string;
+  key: string;
+  object: SharedObjectType;
+}
+
+export type AppEventProperty =
+  | {
+      type: "string";
+      description?: string;
+      /** Excludes `maxLength`. */
+      enum?: readonly string[];
+      maxLength?: number;
+    }
+  | { type: "number" | "integer"; description?: string; minimum?: number; maximum?: number }
+  | { type: "boolean"; description?: string };
+
+/** JSON-Schema subset for event data: flat objects of strings, numbers, integers and booleans (at most 30 properties). */
+export interface AppEventSchema {
+  type: "object";
+  /** Keys match `^[a-zA-Z][a-zA-Z0-9_]{0,39}$`. */
+  properties: Record<string, AppEventProperty>;
+  required?: readonly string[];
+  /** `false` rejects unknown keys. */
+  additionalProperties?: boolean;
+}
+
+/** An event the app publishes with `publishAppEvent`; subscribers receive it as `app.<your slug>.<name>`. */
+export interface EmittedEvent {
+  name: string;
+  /** 1 to 200 characters, shown in the approval dialog. */
+  description: string;
+  data_categories: readonly string[];
+  /** Published data is validated against it. */
+  schema?: AppEventSchema;
+}
+
+/** An event of another app this app wants to receive. */
+export interface SubscribedEvent {
+  app: string;
+  event: string;
+}
+
 export interface Manifest {
   manifestVersion?: typeof MANIFEST_VERSION;
   installTargets: readonly InstallTarget[];
@@ -216,6 +289,14 @@ export interface Manifest {
   extensions?: readonly ManifestExtension[];
   settingsSchema?: SettingsSchema;
   dataProcessing: DataProcessing;
+  /** Metadata other apps may read (at most 20). Club installations only. */
+  shares?: { metadata: readonly SharedMetadata[] };
+  /** Metadata of other apps this app reads (at most 50). Club installations only. */
+  reads?: { metadata: readonly ReadMetadata[] };
+  /** Events this app publishes to connected apps (at most 20). Club installations only. */
+  emits?: readonly EmittedEvent[];
+  /** Events of other apps this app receives (at most 50). Club installations only. */
+  subscribes?: readonly SubscribedEvent[];
 }
 
 /**

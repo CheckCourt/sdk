@@ -1,6 +1,6 @@
 import type { WebhookEvent } from "./events.js";
-export type { AppLifecycleEventData, BookingEventData, CourtLockEventData, EventDataMap, EventObjectType, EventType, MemberEventData, SubscribableEventType, AppLifecycleEventType, WebhookEvent, WebhookEventOf, } from "./events.js";
-export { APP_LIFECYCLE_EVENT_TYPES, EVENT_TYPES, SUBSCRIBABLE_EVENT_TYPES } from "./events.js";
+export type { AppEvent, AppEventType, AppMetadataChangedEvent, AppMetadataChangedEventData, ConnectionEvent, AppLifecycleEventData, BookingEventData, CourtLockEventData, EventDataMap, EventObjectType, EventType, MemberEventData, SubscribableEventType, AppLifecycleEventType, WebhookEvent, WebhookEventOf, } from "./events.js";
+export { APP_LIFECYCLE_EVENT_TYPES, EVENT_TYPES, METADATA_CHANGED_EVENT_TYPE, SUBSCRIBABLE_EVENT_TYPES, appEventType, isAppEvent, isMetadataChangedEvent, } from "./events.js";
 export { WebhookSignatureError, type WebhookSignatureFailure } from "./errors.js";
 export declare const SIGNATURE_HEADER = "CheckCourt-Signature";
 export declare const EVENT_ID_HEADER = "CheckCourt-Event-Id";

@@ -1,7 +1,7 @@
 import { WebhookSignatureError } from "./errors.js";
 import { decodeUtf8, hexDecode, hexEncode, toBytes, utf8 } from "./internal/encoding.js";
 import { hmacSha256, hmacSha256Verify } from "./internal/hmac.js";
-export { APP_LIFECYCLE_EVENT_TYPES, EVENT_TYPES, SUBSCRIBABLE_EVENT_TYPES } from "./events.js";
+export { APP_LIFECYCLE_EVENT_TYPES, EVENT_TYPES, METADATA_CHANGED_EVENT_TYPE, SUBSCRIBABLE_EVENT_TYPES, appEventType, isAppEvent, isMetadataChangedEvent, } from "./events.js";
 export { WebhookSignatureError } from "./errors.js";
 export const SIGNATURE_HEADER = "CheckCourt-Signature";
 export const EVENT_ID_HEADER = "CheckCourt-Event-Id";

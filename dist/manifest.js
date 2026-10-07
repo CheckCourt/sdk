@@ -123,7 +123,21 @@ export const GRANTABLE_SCOPES = [
     "analytics:read",
     "embeds:manage",
     "webhooks:read",
+    // App-only: no club role holds it; a member app gets it from the member's consent.
+    "notifications:send",
 ];
+/** Club objects apps can attach metadata to. */
+export const SHARED_OBJECT_TYPES = ["booking", "court", "member"];
+/** Read scope both the sharing and the reading app need in `tenantScopes` for an object type. */
+export const SHARED_OBJECT_SCOPE = {
+    booking: "bookings:read",
+    court: "courts:read",
+    member: "members:read",
+};
+/** Metadata keys and event names: `^[a-z][a-z0-9_]{0,39}$`. */
+export const CONNECTION_NAME_PATTERN = /^[a-z][a-z0-9_]{0,39}$/;
+/** Serialized size limit of a metadata value and of event data. */
+export const MAX_SHARED_VALUE_BYTES = 4096;
 /**
  * Identity function that gives editor completion and compile-time checks for a manifest.
  * CheckCourt validates the rest on upload (scope and event pairing, URL rules, lengths).

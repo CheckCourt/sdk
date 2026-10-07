@@ -92,4 +92,65 @@ export interface WebhookEventOf<T extends EventType> {
   data: EventDataMap[T];
 }
 
-export type WebhookEvent = { [T in EventType]: WebhookEventOf<T> }[EventType];
+/** `data` of `app.metadata_changed`: another app changed or removed a value your app reads. */
+export interface AppMetadataChangedEventData {
+  object_type: "booking" | "court" | "member";
+  object_id: string;
+  /** Slug of the app that wrote the value. */
+  app: string;
+  key: string;
+  /** True when the value was removed. */
+  deleted: boolean;
+}
+
+export const METADATA_CHANGED_EVENT_TYPE = "app.metadata_changed";
+
+/** Type of an event one app publishes to others: `app.<publishing app slug>.<name>`. */
+export type AppEventType = `app.${string}.${string}`;
+
+interface ConnectionEventEnvelope<T extends string, D> {
+  id: string;
+  type: T;
+  created_at: string;
+  tenant_id: string;
+  installation_id?: string;
+  /** The `subject` the publisher gave, otherwise its own installation (`app_installation`). */
+  object: { type: EventObjectType | (string & {}); id: string };
+  data: D;
+}
+
+/** Sent to apps the club connected to the writer, for keys they declare under `reads.metadata`. Read the value with `getObjectMetadata`. */
+export type AppMetadataChangedEvent = ConnectionEventEnvelope<
+  typeof METADATA_CHANGED_EVENT_TYPE,
+  AppMetadataChangedEventData
+>;
+
+/** An event of another app, delivered when you declare it under `subscribes` and the club approved the connection. */
+export type AppEvent<D extends Record<string, unknown> = Record<string, unknown>> = ConnectionEventEnvelope<AppEventType, D>;
+
+/** Events between apps; CheckCourt delivers them only along connections the club approved. */
+export type ConnectionEvent = AppMetadataChangedEvent | AppEvent;
+
+export type WebhookEvent = { [T in EventType]: WebhookEventOf<T> }[EventType] | ConnectionEvent;
+
+export function appEventType(appSlug: string, name: string): AppEventType {
+  return `app.${appSlug}.${name}`;
+}
+
+/**
+ * Narrows to an event published by another app, optionally a specific one:
+ * `if (isAppEvent<DoorOpened>(event, "door-co", "door_opened")) event.data.court_id`.
+ */
+export function isAppEvent<D extends Record<string, unknown> = Record<string, unknown>>(
+  event: WebhookEvent,
+  appSlug?: string,
+  name?: string,
+): event is AppEvent<D> {
+  const match = /^app\.([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)\.([a-z][a-z0-9_]*)$/.exec(event.type);
+  if (!match) return false;
+  return (appSlug === undefined || match[1] === appSlug) && (name === undefined || match[2] === name);
+}
+
+export function isMetadataChangedEvent(event: WebhookEvent): event is AppMetadataChangedEvent {
+  return event.type === METADATA_CHANGED_EVENT_TYPE;
+}

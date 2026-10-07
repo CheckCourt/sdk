@@ -3,17 +3,28 @@
 All notable changes to `@checkcourt/sdk` are listed here. The SDK is in `0.x`: minor
 versions may contain breaking changes.
 
-## Unreleased
+## 0.5.0
 
 ### Added
 
 - `ui.field.text` accepts `multiline` and `rows` (1 to 12). A multiline text field renders as
   a text box in CheckCourt; the submitted value stays a string and `max_length` still applies.
-
-## 0.5.0
-
-### Added
-
+- Manifest types for connections between apps: `shares.metadata`, `reads.metadata`, `emits` and
+  `subscribes`, with `SharedMetadata`, `ReadMetadata`, `EmittedEvent`, `SubscribedEvent`,
+  `AppEventSchema`, `SHARED_OBJECT_TYPES`, `SHARED_OBJECT_SCOPE` and `MAX_SHARED_VALUE_BYTES`.
+- `getObjectMetadata`, `putObjectMetadata` and `deleteObjectMetadata` for
+  `/api/v1/{bookings|courts|members}/{id}/metadata`, and `publishAppEvent` for
+  `POST /api/v1/app/events`.
+- Webhook types for events between apps: `AppMetadataChangedEvent` (`app.metadata_changed`) and
+  `AppEvent` (`app.<slug>.<name>`), now part of `WebhookEvent`, with `isAppEvent`,
+  `isMetadataChangedEvent` and `appEventType`.
+- `sendNotification(client, { recipient, title, body, url?, category?, idempotencyKey? })`
+  calls `POST /api/v1/app/notifications`: CheckCourt delivers a message to one member in
+  CheckCourt and by email, without your app learning contact data. Returns
+  `{ id, accepted: true }`. Types `SendNotificationInput` and `SendNotificationResponse`,
+  constants `NOTIFICATION_TITLE_MAX` (80) and `NOTIFICATION_BODY_MAX` (500).
+- `notifications:send` in `GRANTABLE_SCOPES`. It is app-only: no club role holds it, and a
+  member app gets it from the member's consent.
 - Six new extension points in `EXTENSION_POINTS`, `EXTENSION_POINT_SCOPE`, `PointSubject`
   and `PointCapabilities`:
   - `court.annotation` (club, declarative, needs `courts:read`): small badges in the court

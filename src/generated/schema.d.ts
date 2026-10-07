@@ -1447,6 +1447,213 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bookings/{id}/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read app metadata attached to a booking
+         * @description **Required scope:** `bookings:read`
+         *
+         *     Returns the calling app's own keys on this booking and the keys of other apps that the caller declares under `reads.metadata` in its manifest, the producer declares under `shares.metadata`, and the club approved. Only for club app installation tokens (`cca_`); member app tokens and API keys receive `403`. Data between apps flows only along connections the club approved under Admin, Apps, Verbindungen.
+         */
+        get: operations["getBookingMetadata"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bookings/{id}/metadata/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Attach or replace a metadata value on a booking
+         * @description **Required scope:** `bookings:read`
+         *
+         *     Writes one of the app's own keys. The key must be declared under `shares.metadata` with `object: "booking"`. A changed value sends `app.metadata_changed` to the apps the club connected to yours for this key. Only for club app installation tokens (`cca_`); member app tokens and API keys receive `403`. Data between apps flows only along connections the club approved under Admin, Apps, Verbindungen.
+         */
+        put: operations["putBookingMetadata"];
+        post?: never;
+        /**
+         * Remove one of the app's metadata values from a booking
+         * @description **Required scope:** `bookings:read`
+         *
+         *     Removes the app's own value. Works for keys a newer manifest no longer declares, so an app can clean up. `deleted: false` when there was nothing to remove. Only for club app installation tokens (`cca_`); member app tokens and API keys receive `403`. Data between apps flows only along connections the club approved under Admin, Apps, Verbindungen.
+         */
+        delete: operations["deleteBookingMetadata"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courts/{id}/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read app metadata attached to a court
+         * @description **Required scope:** `courts:read`
+         *
+         *     Returns the calling app's own keys on this court and the keys of other apps that the caller declares under `reads.metadata` in its manifest, the producer declares under `shares.metadata`, and the club approved. Only for club app installation tokens (`cca_`); member app tokens and API keys receive `403`. Data between apps flows only along connections the club approved under Admin, Apps, Verbindungen.
+         */
+        get: operations["getCourtMetadata"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courts/{id}/metadata/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Attach or replace a metadata value on a court
+         * @description **Required scope:** `courts:read`
+         *
+         *     Writes one of the app's own keys. The key must be declared under `shares.metadata` with `object: "court"`. A changed value sends `app.metadata_changed` to the apps the club connected to yours for this key. Only for club app installation tokens (`cca_`); member app tokens and API keys receive `403`. Data between apps flows only along connections the club approved under Admin, Apps, Verbindungen.
+         */
+        put: operations["putCourtMetadata"];
+        post?: never;
+        /**
+         * Remove one of the app's metadata values from a court
+         * @description **Required scope:** `courts:read`
+         *
+         *     Removes the app's own value. Works for keys a newer manifest no longer declares, so an app can clean up. `deleted: false` when there was nothing to remove. Only for club app installation tokens (`cca_`); member app tokens and API keys receive `403`. Data between apps flows only along connections the club approved under Admin, Apps, Verbindungen.
+         */
+        delete: operations["deleteCourtMetadata"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/members/{id}/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read app metadata attached to a member
+         * @description **Required scope:** `members:read`
+         *
+         *     Returns the calling app's own keys on this member and the keys of other apps that the caller declares under `reads.metadata` in its manifest, the producer declares under `shares.metadata`, and the club approved. Only for club app installation tokens (`cca_`); member app tokens and API keys receive `403`. Data between apps flows only along connections the club approved under Admin, Apps, Verbindungen.
+         */
+        get: operations["getMemberMetadata"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/members/{id}/metadata/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Attach or replace a metadata value on a member
+         * @description **Required scope:** `members:read`
+         *
+         *     Writes one of the app's own keys. The key must be declared under `shares.metadata` with `object: "member"`. A changed value sends `app.metadata_changed` to the apps the club connected to yours for this key. Only for club app installation tokens (`cca_`); member app tokens and API keys receive `403`. Data between apps flows only along connections the club approved under Admin, Apps, Verbindungen.
+         */
+        put: operations["putMemberMetadata"];
+        post?: never;
+        /**
+         * Remove one of the app's metadata values from a member
+         * @description **Required scope:** `members:read`
+         *
+         *     Removes the app's own value. Works for keys a newer manifest no longer declares, so an app can clean up. `deleted: false` when there was nothing to remove. Only for club app installation tokens (`cca_`); member app tokens and API keys receive `403`. Data between apps flows only along connections the club approved under Admin, Apps, Verbindungen.
+         */
+        delete: operations["deleteMemberMetadata"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish an event to connected apps
+         * @description **Scopes:** none for the event itself; a `subject` needs the read scope of its object type.
+         *
+         *     Only for club app installation tokens (`cca_`). The name must be declared under `emits` in the manifest. CheckCourt delivers the event as `app.<your app slug>.<name>` through the regular signed webhooks, only to club installations that declare it under `subscribes` and that the club connected to yours. At most 60 events per minute per installation (`429` with `Retry-After` beyond).
+         */
+        post: operations["publishAppEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Notify a member through CheckCourt
+         * @description **Required scope:** `notifications:send` (club app installation tokens `cca_` and member app tokens `ccu_`; API keys receive `403`).
+         *
+         *     CheckCourt delivers a short message to one member: in their CheckCourt inbox and, if they allow it, by email. Your app never learns the member's contact data.
+         *
+         *     `recipient` accepts only ids your app legitimately received:
+         *     - the CheckCourt user id, if the installation holds `members:read`;
+         *     - the per-installation pseudonym (`psn_...`) from an extension context token;
+         *     - the pairwise id (`usr_...`) from `GET /api/v1/me` of a member who connected your app.
+         *
+         *     A member app token may only notify its own member. Unknown ids, ids of other clubs, pending or removed members and ids your app may not use all return the same `404`.
+         *
+         *     `url` is either a path inside CheckCourt (`/booking?date=2026-05-01`, not `/api/...`) or an `https` link on an origin your app registered (a redirect URI or the listing's connect URL).
+         *
+         *     Limits: 60 per minute and 1,000 per day per installation, 10 per day per member and app (`429` with `Retry-After`). CheckCourt sends at most 3 emails per member and app per day; further messages only reach the inbox. With the same `idempotency_key` within 24 hours, the first notification's id comes back and nothing is sent again.
+         *
+         *     The response never reveals whether the member muted your app. If the club paused your app's notifications, the request fails with `422 BUSINESS_RULE`.
+         */
+        post: operations["sendAppNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2493,6 +2700,134 @@ export interface components {
                 /** @example TC Blau-Weiß */
                 name: string;
             }[];
+        };
+        ObjectMetadataEntry: {
+            /** @description Any JSON value except null, at most 4096 bytes serialized */
+            value: unknown;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /**
+         * @example {
+         *       "object": {
+         *         "type": "booking",
+         *         "id": "bk_123"
+         *       },
+         *       "metadata": {
+         *         "wingfield": {
+         *           "video_url": {
+         *             "value": "https://video.example/abc",
+         *             "updated_at": "2026-10-06T18:02:11.000Z"
+         *           }
+         *         }
+         *       }
+         *     }
+         */
+        ObjectMetadata: {
+            object: {
+                /** @enum {string} */
+                type: "booking" | "court" | "member";
+                id: string;
+            };
+            /** @description Grouped by app slug, then by key. Contains the calling app's own keys and the keys of other apps that the caller declares under `reads.metadata` and the club approved. */
+            metadata: {
+                [key: string]: {
+                    [key: string]: components["schemas"]["ObjectMetadataEntry"];
+                };
+            };
+        };
+        ObjectMetadataWritten: {
+            object: {
+                /** @enum {string} */
+                type: "booking" | "court" | "member";
+                id: string;
+            };
+            key: string;
+            value: unknown;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /**
+         * @example {
+         *       "name": "door_opened",
+         *       "data": {
+         *         "court_id": 3
+         *       },
+         *       "subject": {
+         *         "type": "court",
+         *         "id": "3"
+         *       }
+         *     }
+         */
+        PublishAppEventRequest: {
+            /** @description An event the app declares under `emits` in its manifest */
+            name: string;
+            /** @description At most 4096 bytes serialized. Validated against the event's `schema` if the manifest declares one. Defaults to `{}`. */
+            data?: {
+                [key: string]: unknown;
+            };
+            /** @description Optional club object the event is about; becomes `object` in the delivery. Needs the read scope of that object type. Without it, `object` is the sending installation. */
+            subject?: {
+                /** @enum {string} */
+                type: "booking" | "court" | "member";
+                id: string;
+            };
+        };
+        PublishedAppEvent: {
+            /** @description `evt_…`, equal to `CheckCourt-Event-Id` of every delivery */
+            id: string;
+            /**
+             * @description `app.<your app slug>.<name>`
+             * @example app.door-co.door_opened
+             */
+            type: string;
+        };
+        /**
+         * @example {
+         *       "value": "https://video.example/abc"
+         *     }
+         */
+        ObjectMetadataWrite: {
+            /** @description Any JSON value except null, at most 4096 bytes serialized */
+            value: unknown;
+        };
+        SendNotificationRequest: {
+            /**
+             * @description CheckCourt user id (needs `members:read`), extension pseudonym `psn_...` or pairwise id `usr_...`
+             * @example psn_4hQ2v0bD1xZk8yWm3nT7aLc9eRf
+             */
+            recipient: string;
+            /**
+             * @description One line of plain text
+             * @example Deine Ballmaschine ist bereit
+             */
+            title: string;
+            /**
+             * @description Plain text; line breaks are kept, HTML is shown as text
+             * @example Ab 17:30 Uhr auf Platz 3.
+             */
+            body: string;
+            /**
+             * @description Path inside CheckCourt or https link on an origin your app registered
+             * @example /booking?date=2026-05-01
+             */
+            url?: string;
+            /**
+             * @description Your own label for the kind of message, stored for later filtering
+             * @example reminder
+             */
+            category?: string;
+            /**
+             * @description Repeat a request safely: the same key within 24 hours returns the first notification
+             * @example reservation-8812-reminder
+             */
+            idempotency_key?: string;
+        };
+        SendNotificationResponse: {
+            /** @example ntf_k3x9... */
+            id: string;
+            /** @description Always true; whether and how the member sees it stays private */
+            accepted: boolean;
         };
     };
     responses: {
@@ -5889,6 +6224,341 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    getBookingMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Booking id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectMetadata"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    putBookingMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Booking id */
+                id: string;
+                /** @description A key your app declares under `shares.metadata` for this object type */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ObjectMetadataWrite"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectMetadataWritten"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    deleteBookingMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Booking id */
+                id: string;
+                /** @description A key your app declares under `shares.metadata` for this object type */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        deleted: boolean;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    getCourtMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Numeric court id */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectMetadata"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    putCourtMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Numeric court id */
+                id: number;
+                /** @description A key your app declares under `shares.metadata` for this object type */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ObjectMetadataWrite"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectMetadataWritten"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    deleteCourtMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Numeric court id */
+                id: number;
+                /** @description A key your app declares under `shares.metadata` for this object type */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        deleted: boolean;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    getMemberMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The member's user id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectMetadata"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    putMemberMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The member's user id */
+                id: string;
+                /** @description A key your app declares under `shares.metadata` for this object type */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ObjectMetadataWrite"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectMetadataWritten"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    deleteMemberMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The member's user id */
+                id: string;
+                /** @description A key your app declares under `shares.metadata` for this object type */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        deleted: boolean;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    publishAppEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishAppEventRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted into the outbox */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedAppEvent"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    sendAppNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendNotificationRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted for delivery */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendNotificationResponse"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["BusinessRuleError"];
             429: components["responses"]["RateLimited"];
         };
     };

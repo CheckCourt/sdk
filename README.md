@@ -52,6 +52,25 @@ renews it shortly before it expires. Use `apiKeyAuth(key)` for your own club's A
 `unwrap()` returns `data` or throws a `CheckCourtApiError`. Requests are retried once
 after a `401` with a fresh token and with backoff after a `429`.
 
+### Notify a member
+
+```ts
+import { sendNotification } from "@checkcourt/sdk";
+
+// Needs notifications:send. recipient: a psn_… pseudonym from an extension context,
+// the pairwise usr_… id from getMe(), or the user id if you hold members:read.
+const { id } = await sendNotification(client, {
+  recipient: claims.viewer.user_id!,
+  title: "Deine Ballmaschine ist bereit",
+  body: "Platz 3 ab 17:30 Uhr.",
+  url: "/booking?date=2026-05-01",
+  idempotencyKey: "reservation-8812-ready",
+});
+```
+
+CheckCourt delivers the message in the member's inbox and by email if they allow it. Your
+app never learns contact data or whether the member muted it.
+
 ### Verify a webhook
 
 ```ts
@@ -73,6 +92,28 @@ export async function POST(request: Request) {
 
 `verifyWebhook` throws a `WebhookSignatureError` when the signature or timestamp does not
 check out. Deduplicate on `event.id`: retries carry the same id.
+
+### Share data and events with other apps (club apps)
+
+Apps never call each other. They declare in the manifest what they share (`shares`, `emits`) and
+what they want from other apps (`reads`, `subscribes`); CheckCourt passes the data on once the club
+approves the connection.
+
+```ts
+import { getObjectMetadata, isAppEvent, publishAppEvent, putObjectMetadata } from "@checkcourt/sdk";
+
+// Producer: attach a value to a booking (key declared under shares.metadata).
+await putObjectMetadata(client, "booking", bookingId, "video_url", "https://video.example/abc");
+// Producer: publish an event declared under emits.
+await publishAppEvent(client, { name: "door_opened", data: { court_id: 3 } });
+
+// Consumer: read your own and approved values of other apps, grouped by app slug.
+const { metadata } = await getObjectMetadata(client, "booking", bookingId);
+const videoUrl = metadata["wingfield"]?.["video_url"]?.value;
+
+// Consumer webhook: events of other apps arrive as `app.<slug>.<name>`.
+if (isAppEvent<{ court_id: number }>(event, "door-co", "door_opened")) console.log(event.data.court_id);
+```
 
 ### Declarative extensions and the `ui` builder
 

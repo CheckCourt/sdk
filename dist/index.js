@@ -1,6 +1,8 @@
 export { createCheckCourtClient, unwrap, retryAfterMs, TENANT_HEADER } from "./client.js";
 export { apiKeyAuth, installationAuth, userAuth } from "./auth.js";
 export { getInstallation, getMe } from "./installation.js";
+export { deleteObjectMetadata, getObjectMetadata, publishAppEvent, putObjectMetadata, } from "./connections.js";
+export { sendNotification, NOTIFICATION_TITLE_MAX, NOTIFICATION_BODY_MAX, } from "./notifications.js";
 export * from "./errors.js";
 export * from "./oauth.js";
 export * from "./webhooks.js";

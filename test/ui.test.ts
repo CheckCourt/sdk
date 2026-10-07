@@ -10,9 +10,16 @@ import {
   MAX_BOOKING_HINTS,
   MAX_HINT_BLOCKS,
   MAX_SIDEBAR_ACTIONS,
+  MAX_COLUMNS,
+  MIN_COLUMNS,
+  UI_ICONS,
   toast,
   ui,
+  type BadgeVariant,
+  type ColumnsAlignment,
+  type StatSize,
   type UiHintBlock,
+  type UiIcon,
 } from "../src/ui.js";
 
 describe("ui builder", () => {
@@ -65,6 +72,63 @@ describe("ui builder", () => {
       required: true,
     });
     expect(ui.field.time("to", "Bis")).toEqual({ type: "time", name: "to", label: "Bis" });
+  });
+
+  it("adds icons to text, heading, stat, badge and list items, and keeps the old call forms", () => {
+    expect(ui.text("Sonnig", { icon: "sun" })).toEqual({ type: "text", text: "Sonnig", icon: "sun" });
+    expect(ui.heading("Turnier", { level: 3, icon: "trophy" })).toEqual({
+      type: "heading",
+      text: "Turnier",
+      level: 3,
+      icon: "trophy",
+    });
+    expect(ui.heading("Turnier", { icon: "trophy" }).level).toBe(2);
+    expect(ui.heading("Details", 3)).toEqual({ type: "heading", text: "Details", level: 3 });
+    expect(ui.stat("Jetzt", "24°", { icon: "sun", size: "lg" })).toEqual({
+      type: "stat",
+      label: "Jetzt",
+      value: "24°",
+      icon: "sun",
+      size: "lg",
+    });
+    expect(ui.badge("Regen möglich", { variant: "warning", icon: "droplets" })).toEqual({
+      type: "badge",
+      label: "Regen möglich",
+      variant: "warning",
+      icon: "droplets",
+    });
+    expect(ui.badge("Neu", "warning")).toEqual({ type: "badge", label: "Neu", variant: "warning" });
+    expect(ui.badge("Neu")).toEqual({ type: "badge", label: "Neu" });
+    expect(ui.list([{ title: "Platz 1", icon: "map-pin" }, { title: "Platz 2" }])).toEqual({
+      type: "list",
+      items: [{ title: "Platz 1", icon: "map-pin" }, { title: "Platz 2" }],
+    });
+  });
+
+  it("rejects icons, sizes and variants outside the allowlists", () => {
+    expect(UI_ICONS).toContain("cloud-sun");
+    expect(() => ui.text("x", { icon: "rocket" as UiIcon })).toThrow(TypeError);
+    expect(() => ui.list([{ title: "x", icon: "rocket" as UiIcon }])).toThrow(TypeError);
+    expect(() => ui.stat("x", "1", { size: "xl" as StatSize })).toThrow(TypeError);
+    expect(() => ui.badge("x", "danger" as BadgeVariant)).toThrow(TypeError);
+  });
+
+  it("builds columns with 2 to 6 children and rejects other counts", () => {
+    const day = (label: string) => ui.stat(label, "20°", { icon: "cloud" });
+    expect(ui.columns([day("Heute"), day("Do")], { dividers: true, align: "center" })).toEqual({
+      type: "columns",
+      children: [day("Heute"), day("Do")],
+      dividers: true,
+      align: "center",
+    });
+    expect(JSON.stringify(ui.columns([ui.text("a"), ui.text("b")]))).toBe(
+      '{"type":"columns","children":[{"type":"text","text":"a"},{"type":"text","text":"b"}]}',
+    );
+    expect(MIN_COLUMNS).toBe(2);
+    expect(MAX_COLUMNS).toBe(6);
+    expect(() => ui.columns([ui.text("a")])).toThrow(RangeError);
+    expect(() => ui.columns(Array.from({ length: 7 }, () => ui.text("a")))).toThrow(RangeError);
+    expect(() => ui.columns([ui.text("a"), ui.text("b")], { align: "end" as ColumnsAlignment })).toThrow(TypeError);
   });
 
   it("builds a hidden document, with an optional toast", () => {

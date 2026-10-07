@@ -6,7 +6,7 @@ export declare const MAX_TOAST_LENGTH = 200;
 /** Top-level areas `navigate()` may target; anything else is dropped by CheckCourt. */
 export declare const NAVIGABLE_SECTIONS: readonly ["dashboard", "booking", "my-bookings", "club", "team", "trainer", "fees", "arbeitsstunden", "settings", "admin"];
 /** CSS variables CheckCourt sends with every theme message. */
-export declare const THEME_TOKEN_NAMES: readonly ["--background", "--foreground", "--card", "--card-foreground", "--muted", "--muted-foreground", "--primary", "--primary-foreground", "--secondary", "--secondary-foreground", "--accent", "--accent-foreground", "--destructive", "--border", "--input", "--ring", "--radius"];
+export declare const THEME_TOKEN_NAMES: readonly ["--background", "--foreground", "--card", "--card-foreground", "--muted", "--muted-foreground", "--primary", "--primary-foreground", "--secondary", "--secondary-foreground", "--accent", "--accent-foreground", "--destructive", "--warning", "--warning-foreground", "--warning-muted", "--border", "--input", "--ring", "--radius"];
 export type ThemeTokenName = (typeof THEME_TOKEN_NAMES)[number];
 export type FrameMessage = {
     type: "checkcourt:resize";

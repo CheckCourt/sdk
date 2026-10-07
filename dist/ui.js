@@ -2,8 +2,63 @@ export const UI_VERSION = "v1";
 export const MAX_UI_BLOCKS = 50;
 /** Top-level blocks sit at depth 1; a container's children one deeper. */
 export const MAX_UI_DEPTH = 3;
-export const BADGE_VARIANTS = ["default", "secondary", "outline", "destructive"];
+export const BADGE_VARIANTS = ["default", "secondary", "outline", "destructive", "warning"];
 export const BUTTON_VARIANTS = ["default", "secondary", "outline", "destructive"];
+/** Icons a block may show, by lucide name; CheckCourt draws them in the text color at text size. */
+export const UI_ICONS = [
+    "sun",
+    "moon",
+    "cloud",
+    "cloud-sun",
+    "cloud-moon",
+    "cloud-sun-rain",
+    "cloud-rain",
+    "cloud-drizzle",
+    "cloud-lightning",
+    "cloud-snow",
+    "cloud-fog",
+    "snowflake",
+    "wind",
+    "droplet",
+    "droplets",
+    "umbrella",
+    "thermometer",
+    "sunrise",
+    "sunset",
+    "check",
+    "x",
+    "info",
+    "alert-triangle",
+    "triangle-alert",
+    "alert-circle",
+    "circle-alert",
+    "clock",
+    "calendar",
+    "map-pin",
+    "trophy",
+    "users",
+    "user",
+    "lock",
+    "unlock",
+    "lock-open",
+    "lightbulb",
+    "zap",
+    "euro",
+    "star",
+    "heart",
+    "bell",
+    "flag",
+    "activity",
+    "timer",
+    "ticket",
+    "door-open",
+];
+/** `lg` shows the value as a large display figure, `md` (default) as a regular stat. */
+export const STAT_SIZES = ["md", "lg"];
+export const COLUMNS_ALIGNMENTS = ["start", "center"];
+/** A `columns` block holds 2 to 6 children. */
+export const MIN_COLUMNS = 2;
+export const MAX_COLUMNS = 6;
 /** CheckCourt caps every render lifetime at this many seconds. */
 export const UI_CACHE_MAX_AGE_LIMIT = 300;
 /** Longest badge label of a `court.annotation`. */
@@ -74,6 +129,14 @@ function variantOf(variant, what) {
         throw new TypeError(`${what} must be one of ${BADGE_VARIANTS.join(", ")}`);
     }
     return variant;
+}
+function iconOf(icon) {
+    if (icon === undefined)
+        return undefined;
+    if (!UI_ICONS.includes(icon)) {
+        throw new TypeError(`Unknown icon ${String(icon)}; use one of UI_ICONS`);
+    }
+    return icon;
 }
 function entriesOf(list, what) {
     if (!Array.isArray(list))
@@ -157,19 +220,31 @@ export const ui = {
         return compact({ ui: UI_VERSION, hidden: true, toast: options.toast, cache: cacheOf(options.maxAge) });
     },
     text(text, options = {}) {
-        return compact({ type: "text", text, tone: options.tone });
+        return compact({ type: "text", text, tone: options.tone, icon: iconOf(options.icon) });
     },
-    heading(text, level = 2) {
-        return { type: "heading", text, level };
+    /** `ui.heading(text, 3)` or `ui.heading(text, { level: 3, icon: "trophy" })`; level defaults to 2. */
+    heading(text, levelOrOptions = 2) {
+        const options = typeof levelOrOptions === "object" ? levelOrOptions : { level: levelOrOptions };
+        return compact({ type: "heading", text, level: options.level ?? 2, icon: iconOf(options.icon) });
     },
     stat(label, value, options = {}) {
-        return compact({ type: "stat", label, value, hint: options.hint });
+        if (options.size !== undefined && !STAT_SIZES.includes(options.size)) {
+            throw new TypeError(`stat size must be one of ${STAT_SIZES.join(", ")}`);
+        }
+        return compact({ type: "stat", label, value, hint: options.hint, icon: iconOf(options.icon), size: options.size });
     },
-    badge(label, variant) {
-        return compact({ type: "badge", label, variant });
+    /** `ui.badge(label, "warning")` or `ui.badge(label, { variant: "warning", icon: "droplets" })`. */
+    badge(label, variantOrOptions) {
+        const options = typeof variantOrOptions === "object" ? variantOrOptions : { variant: variantOrOptions };
+        return compact({
+            type: "badge",
+            label,
+            variant: variantOf(options.variant, "badge variant"),
+            icon: iconOf(options.icon),
+        });
     },
     list(items) {
-        return { type: "list", items: items.map((item) => compact({ ...item })) };
+        return { type: "list", items: items.map((item) => compact({ ...item, icon: iconOf(item.icon) })) };
     },
     /** Pairs keep their order; a plain object is turned into pairs in key order. */
     keyValue(pairs) {
@@ -201,6 +276,16 @@ export const ui = {
     /** Horizontal, wraps on narrow screens. */
     row(children) {
         return { type: "row", children };
+    },
+    /** 2 to 6 equal-width columns, optionally with vertical dividers; throws on any other count. */
+    columns(children, options = {}) {
+        if (!Array.isArray(children) || children.length < MIN_COLUMNS || children.length > MAX_COLUMNS) {
+            throw new RangeError(`columns takes ${MIN_COLUMNS} to ${MAX_COLUMNS} children`);
+        }
+        if (options.align !== undefined && !COLUMNS_ALIGNMENTS.includes(options.align)) {
+            throw new TypeError(`columns align must be one of ${COLUMNS_ALIGNMENTS.join(", ")}`);
+        }
+        return compact({ type: "columns", children, dividers: options.dividers, align: options.align });
     },
 };
 /** Toasts for `ui.doc(blocks, { toast })`, at most 200 characters. */

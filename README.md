@@ -193,6 +193,32 @@ ui.form({
 });
 ```
 
+Blocks can carry an `icon` from `UI_ICONS` (text, heading, stat, badge, list items), a `stat`
+can be `size: "lg"`, badges have a soft amber `"warning"` variant, and `ui.columns` lays out 2
+to 6 children in equal widths. A weather widget:
+
+```ts
+const days = [
+  ["Heute", "sun", "24°"],
+  ["Do", "cloud-sun", "21°"],
+  ["Fr", "cloud-rain", "17°"],
+  ["Sa", "cloud-drizzle", "18°"],
+  ["So", "sun", "23°"],
+] as const;
+
+ui.doc([
+  ui.row([
+    ui.stat("Jetzt", "24°", { icon: "sun", size: "lg", hint: "Sonnig" }),
+    ui.badge("Regen möglich", { variant: "warning", icon: "droplets" }),
+  ]),
+  ui.divider(),
+  ui.columns(
+    days.map(([day, icon, temp]) => ui.stat(day, temp, { icon })),
+    { dividers: true, align: "center" },
+  ),
+]);
+```
+
 Compare `context.installation_id` and `context.tenant_id` with what you stored from
 `app.installed` before you act on a request. For the context token alone (for example in
 the backend of an iframe extension), use `verifyExtensionContext(token, secret)`.

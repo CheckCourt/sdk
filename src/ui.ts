@@ -3,16 +3,78 @@ export const MAX_UI_BLOCKS = 50;
 /** Top-level blocks sit at depth 1; a container's children one deeper. */
 export const MAX_UI_DEPTH = 3;
 
-export const BADGE_VARIANTS = ["default", "secondary", "outline", "destructive"] as const;
+export const BADGE_VARIANTS = ["default", "secondary", "outline", "destructive", "warning"] as const;
 export const BUTTON_VARIANTS = ["default", "secondary", "outline", "destructive"] as const;
 export type BadgeVariant = (typeof BADGE_VARIANTS)[number];
 export type ButtonVariant = (typeof BUTTON_VARIANTS)[number];
 
-export type UiTextBlock = { type: "text"; text: string; tone?: "muted" };
-export type UiHeadingBlock = { type: "heading"; text: string; level: 2 | 3 };
-export type UiStatBlock = { type: "stat"; label: string; value: string; hint?: string };
-export type UiBadgeBlock = { type: "badge"; label: string; variant?: BadgeVariant };
-export type UiListItem = { title: string; description?: string };
+/** Icons a block may show, by lucide name; CheckCourt draws them in the text color at text size. */
+export const UI_ICONS = [
+  "sun",
+  "moon",
+  "cloud",
+  "cloud-sun",
+  "cloud-moon",
+  "cloud-sun-rain",
+  "cloud-rain",
+  "cloud-drizzle",
+  "cloud-lightning",
+  "cloud-snow",
+  "cloud-fog",
+  "snowflake",
+  "wind",
+  "droplet",
+  "droplets",
+  "umbrella",
+  "thermometer",
+  "sunrise",
+  "sunset",
+  "check",
+  "x",
+  "info",
+  "alert-triangle",
+  "triangle-alert",
+  "alert-circle",
+  "circle-alert",
+  "clock",
+  "calendar",
+  "map-pin",
+  "trophy",
+  "users",
+  "user",
+  "lock",
+  "unlock",
+  "lock-open",
+  "lightbulb",
+  "zap",
+  "euro",
+  "star",
+  "heart",
+  "bell",
+  "flag",
+  "activity",
+  "timer",
+  "ticket",
+  "door-open",
+] as const;
+
+export type UiIcon = (typeof UI_ICONS)[number];
+
+/** `lg` shows the value as a large display figure, `md` (default) as a regular stat. */
+export const STAT_SIZES = ["md", "lg"] as const;
+export type StatSize = (typeof STAT_SIZES)[number];
+export const COLUMNS_ALIGNMENTS = ["start", "center"] as const;
+export type ColumnsAlignment = (typeof COLUMNS_ALIGNMENTS)[number];
+/** A `columns` block holds 2 to 6 children. */
+export const MIN_COLUMNS = 2;
+export const MAX_COLUMNS = 6;
+
+export type UiTextBlock = { type: "text"; text: string; tone?: "muted"; icon?: UiIcon };
+export type UiHeadingBlock = { type: "heading"; text: string; level: 2 | 3; icon?: UiIcon };
+/** With `icon`, the icon sits before the value. */
+export type UiStatBlock = { type: "stat"; label: string; value: string; hint?: string; icon?: UiIcon; size?: StatSize };
+export type UiBadgeBlock = { type: "badge"; label: string; variant?: BadgeVariant; icon?: UiIcon };
+export type UiListItem = { title: string; description?: string; icon?: UiIcon };
 export type UiListBlock = { type: "list"; items: UiListItem[] };
 export type UiKeyValuePair = { label: string; value: string };
 export type UiKeyValueBlock = { type: "key_value"; pairs: UiKeyValuePair[] };
@@ -81,6 +143,8 @@ export type UiFormBlock = { type: "form"; fields: UiFormField[]; submit_label: s
 export type UiDividerBlock = { type: "divider" };
 export type UiStackBlock = { type: "stack"; children: UiBlock[] };
 export type UiRowBlock = { type: "row"; children: UiBlock[] };
+/** 2 to 6 children side by side in equal widths; on narrow cards 4 wrap to 2 per row, 5 and 6 to 3. */
+export type UiColumnsBlock = { type: "columns"; children: UiBlock[]; dividers?: boolean; align?: ColumnsAlignment };
 
 export type UiBlock =
   | UiTextBlock
@@ -94,7 +158,8 @@ export type UiBlock =
   | UiFormBlock
   | UiDividerBlock
   | UiStackBlock
-  | UiRowBlock;
+  | UiRowBlock
+  | UiColumnsBlock;
 
 export type UiToast = { kind: "success" | "error"; message: string };
 
@@ -263,6 +328,14 @@ function variantOf(variant: unknown, what: string): BadgeVariant | undefined {
   return variant as BadgeVariant;
 }
 
+function iconOf(icon: unknown): UiIcon | undefined {
+  if (icon === undefined) return undefined;
+  if (!(UI_ICONS as readonly unknown[]).includes(icon)) {
+    throw new TypeError(`Unknown icon ${String(icon)}; use one of UI_ICONS`);
+  }
+  return icon as UiIcon;
+}
+
 function entriesOf<T>(list: unknown, what: string): T[] {
   if (!Array.isArray(list)) throw new TypeError(`${what} must be an array`);
   if (list.length > MAX_SURFACE_ENTRIES) throw new RangeError(`${what}: at most ${MAX_SURFACE_ENTRIES} entries`);
@@ -339,20 +412,32 @@ export const ui = {
   hidden(options: UiDocumentOptions = {}): UiHiddenDocument {
     return compact({ ui: UI_VERSION, hidden: true as const, toast: options.toast, cache: cacheOf(options.maxAge) });
   },
-  text(text: string, options: { tone?: "muted" } = {}): UiTextBlock {
-    return compact({ type: "text", text, tone: options.tone });
+  text(text: string, options: { tone?: "muted"; icon?: UiIcon } = {}): UiTextBlock {
+    return compact({ type: "text", text, tone: options.tone, icon: iconOf(options.icon) });
   },
-  heading(text: string, level: 2 | 3 = 2): UiHeadingBlock {
-    return { type: "heading", text, level };
+  /** `ui.heading(text, 3)` or `ui.heading(text, { level: 3, icon: "trophy" })`; level defaults to 2. */
+  heading(text: string, levelOrOptions: 2 | 3 | { level?: 2 | 3; icon?: UiIcon } = 2): UiHeadingBlock {
+    const options = typeof levelOrOptions === "object" ? levelOrOptions : { level: levelOrOptions };
+    return compact({ type: "heading", text, level: options.level ?? 2, icon: iconOf(options.icon) });
   },
-  stat(label: string, value: string, options: { hint?: string } = {}): UiStatBlock {
-    return compact({ type: "stat", label, value, hint: options.hint });
+  stat(label: string, value: string, options: { hint?: string; icon?: UiIcon; size?: StatSize } = {}): UiStatBlock {
+    if (options.size !== undefined && !(STAT_SIZES as readonly unknown[]).includes(options.size)) {
+      throw new TypeError(`stat size must be one of ${STAT_SIZES.join(", ")}`);
+    }
+    return compact({ type: "stat", label, value, hint: options.hint, icon: iconOf(options.icon), size: options.size });
   },
-  badge(label: string, variant?: BadgeVariant): UiBadgeBlock {
-    return compact({ type: "badge", label, variant });
+  /** `ui.badge(label, "warning")` or `ui.badge(label, { variant: "warning", icon: "droplets" })`. */
+  badge(label: string, variantOrOptions?: BadgeVariant | { variant?: BadgeVariant; icon?: UiIcon }): UiBadgeBlock {
+    const options = typeof variantOrOptions === "object" ? variantOrOptions : { variant: variantOrOptions };
+    return compact({
+      type: "badge",
+      label,
+      variant: variantOf(options.variant, "badge variant"),
+      icon: iconOf(options.icon),
+    });
   },
   list(items: UiListItem[]): UiListBlock {
-    return { type: "list", items: items.map((item) => compact({ ...item })) };
+    return { type: "list", items: items.map((item) => compact({ ...item, icon: iconOf(item.icon) })) };
   },
   /** Pairs keep their order; a plain object is turned into pairs in key order. */
   keyValue(pairs: UiKeyValuePair[] | Record<string, string>): UiKeyValueBlock {
@@ -384,6 +469,16 @@ export const ui = {
   /** Horizontal, wraps on narrow screens. */
   row(children: UiBlock[]): UiRowBlock {
     return { type: "row", children };
+  },
+  /** 2 to 6 equal-width columns, optionally with vertical dividers; throws on any other count. */
+  columns(children: UiBlock[], options: { dividers?: boolean; align?: ColumnsAlignment } = {}): UiColumnsBlock {
+    if (!Array.isArray(children) || children.length < MIN_COLUMNS || children.length > MAX_COLUMNS) {
+      throw new RangeError(`columns takes ${MIN_COLUMNS} to ${MAX_COLUMNS} children`);
+    }
+    if (options.align !== undefined && !(COLUMNS_ALIGNMENTS as readonly unknown[]).includes(options.align)) {
+      throw new TypeError(`columns align must be one of ${COLUMNS_ALIGNMENTS.join(", ")}`);
+    }
+    return compact({ type: "columns", children, dividers: options.dividers, align: options.align });
   },
 } as const;
 

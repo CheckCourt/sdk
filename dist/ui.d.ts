@@ -2,34 +2,52 @@ export declare const UI_VERSION = "v1";
 export declare const MAX_UI_BLOCKS = 50;
 /** Top-level blocks sit at depth 1; a container's children one deeper. */
 export declare const MAX_UI_DEPTH = 3;
-export declare const BADGE_VARIANTS: readonly ["default", "secondary", "outline", "destructive"];
+export declare const BADGE_VARIANTS: readonly ["default", "secondary", "outline", "destructive", "warning"];
 export declare const BUTTON_VARIANTS: readonly ["default", "secondary", "outline", "destructive"];
 export type BadgeVariant = (typeof BADGE_VARIANTS)[number];
 export type ButtonVariant = (typeof BUTTON_VARIANTS)[number];
+/** Icons a block may show, by lucide name; CheckCourt draws them in the text color at text size. */
+export declare const UI_ICONS: readonly ["sun", "moon", "cloud", "cloud-sun", "cloud-moon", "cloud-sun-rain", "cloud-rain", "cloud-drizzle", "cloud-lightning", "cloud-snow", "cloud-fog", "snowflake", "wind", "droplet", "droplets", "umbrella", "thermometer", "sunrise", "sunset", "check", "x", "info", "alert-triangle", "triangle-alert", "alert-circle", "circle-alert", "clock", "calendar", "map-pin", "trophy", "users", "user", "lock", "unlock", "lock-open", "lightbulb", "zap", "euro", "star", "heart", "bell", "flag", "activity", "timer", "ticket", "door-open"];
+export type UiIcon = (typeof UI_ICONS)[number];
+/** `lg` shows the value as a large display figure, `md` (default) as a regular stat. */
+export declare const STAT_SIZES: readonly ["md", "lg"];
+export type StatSize = (typeof STAT_SIZES)[number];
+export declare const COLUMNS_ALIGNMENTS: readonly ["start", "center"];
+export type ColumnsAlignment = (typeof COLUMNS_ALIGNMENTS)[number];
+/** A `columns` block holds 2 to 6 children. */
+export declare const MIN_COLUMNS = 2;
+export declare const MAX_COLUMNS = 6;
 export type UiTextBlock = {
     type: "text";
     text: string;
     tone?: "muted";
+    icon?: UiIcon;
 };
 export type UiHeadingBlock = {
     type: "heading";
     text: string;
     level: 2 | 3;
+    icon?: UiIcon;
 };
+/** With `icon`, the icon sits before the value. */
 export type UiStatBlock = {
     type: "stat";
     label: string;
     value: string;
     hint?: string;
+    icon?: UiIcon;
+    size?: StatSize;
 };
 export type UiBadgeBlock = {
     type: "badge";
     label: string;
     variant?: BadgeVariant;
+    icon?: UiIcon;
 };
 export type UiListItem = {
     title: string;
     description?: string;
+    icon?: UiIcon;
 };
 export type UiListBlock = {
     type: "list";
@@ -137,7 +155,14 @@ export type UiRowBlock = {
     type: "row";
     children: UiBlock[];
 };
-export type UiBlock = UiTextBlock | UiHeadingBlock | UiStatBlock | UiBadgeBlock | UiListBlock | UiKeyValueBlock | UiLinkBlock | UiButtonBlock | UiFormBlock | UiDividerBlock | UiStackBlock | UiRowBlock;
+/** 2 to 6 children side by side in equal widths; on narrow cards 4 wrap to 2 per row, 5 and 6 to 3. */
+export type UiColumnsBlock = {
+    type: "columns";
+    children: UiBlock[];
+    dividers?: boolean;
+    align?: ColumnsAlignment;
+};
+export type UiBlock = UiTextBlock | UiHeadingBlock | UiStatBlock | UiBadgeBlock | UiListBlock | UiKeyValueBlock | UiLinkBlock | UiButtonBlock | UiFormBlock | UiDividerBlock | UiStackBlock | UiRowBlock | UiColumnsBlock;
 export type UiToast = {
     kind: "success" | "error";
     message: string;
@@ -265,12 +290,23 @@ export declare const ui: {
     readonly hidden: (options?: UiDocumentOptions) => UiHiddenDocument;
     readonly text: (text: string, options?: {
         tone?: "muted";
+        icon?: UiIcon;
     }) => UiTextBlock;
-    readonly heading: (text: string, level?: 2 | 3) => UiHeadingBlock;
+    /** `ui.heading(text, 3)` or `ui.heading(text, { level: 3, icon: "trophy" })`; level defaults to 2. */
+    readonly heading: (text: string, levelOrOptions?: 2 | 3 | {
+        level?: 2 | 3;
+        icon?: UiIcon;
+    }) => UiHeadingBlock;
     readonly stat: (label: string, value: string, options?: {
         hint?: string;
+        icon?: UiIcon;
+        size?: StatSize;
     }) => UiStatBlock;
-    readonly badge: (label: string, variant?: BadgeVariant) => UiBadgeBlock;
+    /** `ui.badge(label, "warning")` or `ui.badge(label, { variant: "warning", icon: "droplets" })`. */
+    readonly badge: (label: string, variantOrOptions?: BadgeVariant | {
+        variant?: BadgeVariant;
+        icon?: UiIcon;
+    }) => UiBadgeBlock;
     readonly list: (items: UiListItem[]) => UiListBlock;
     /** Pairs keep their order; a plain object is turned into pairs in key order. */
     readonly keyValue: (pairs: UiKeyValuePair[] | Record<string, string>) => UiKeyValueBlock;
@@ -296,6 +332,11 @@ export declare const ui: {
     readonly stack: (children: UiBlock[]) => UiStackBlock;
     /** Horizontal, wraps on narrow screens. */
     readonly row: (children: UiBlock[]) => UiRowBlock;
+    /** 2 to 6 equal-width columns, optionally with vertical dividers; throws on any other count. */
+    readonly columns: (children: UiBlock[], options?: {
+        dividers?: boolean;
+        align?: ColumnsAlignment;
+    }) => UiColumnsBlock;
 };
 /** Toasts for `ui.doc(blocks, { toast })`, at most 200 characters. */
 export declare const toast: {

@@ -3,6 +3,31 @@
 All notable changes to `@checkcourt/sdk` are listed here. The SDK is in `0.x`: minor
 versions may contain breaking changes.
 
+## 0.10.0
+
+### Added
+
+- Icons in declarative blocks: optional `icon` on `text`, `heading`, `stat`, `badge` and on
+  `list` items, from the fixed allowlist `UI_ICONS` (type `UiIcon`, lucide names: weather icons
+  such as `sun`, `cloud-sun`, `cloud-rain`, `snowflake`, `wind`, `droplets`, plus general ones
+  such as `check`, `info`, `alert-triangle`, `clock`, `map-pin`, `trophy`, `euro`). CheckCourt
+  draws them in the text color at text size; in a `stat` the icon sits before the value.
+  `ui.text(text, { tone?, icon? })`, `ui.heading(text, { level?, icon? })` (the `ui.heading(text, 3)`
+  form still works), `ui.badge(label, { variant?, icon? })` (the `ui.badge(label, variant)` form
+  still works), `ui.stat(label, value, { hint?, icon?, size? })`. The builders throw on an icon
+  outside `UI_ICONS`.
+- `columns` block and `ui.columns(children, { dividers?, align? })`: 2 to 6 children
+  (`MIN_COLUMNS`, `MAX_COLUMNS`) in equal-width columns, with optional vertical dividers and
+  `align: "start" | "center"` (`COLUMNS_ALIGNMENTS`). On narrow cards 4 columns wrap to 2 per
+  row, 5 and 6 to 3. It counts towards the block and depth limits like `row` and `stack`.
+  `ui.columns` throws on any other child count.
+- Badge variant `"warning"` in `BADGE_VARIANTS` (soft amber), also for `court.annotation`
+  and `member.list.column` values.
+- `size: "md" | "lg"` on `stat` (`STAT_SIZES`, type `StatSize`): `lg` shows the value as a
+  large display figure, for example the current temperature.
+- `THEME_TOKEN_NAMES` includes `--warning`, `--warning-foreground` and `--warning-muted`, so
+  iframe extensions can match the warning colors.
+
 ## 0.9.0
 
 ### Added

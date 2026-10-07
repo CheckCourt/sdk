@@ -3,6 +3,12 @@
 All notable changes to `@checkcourt/sdk` are listed here. The SDK is in `0.x`: minor
 versions may contain breaking changes.
 
+## 0.11.1
+
+- docs: Admin-Pfad Automatisierungen in der API-Beschreibung. Management keys are created under
+  *Admin → Automatisierungen* (Automations), where API keys and webhooks now live together.
+  No type changes; `OPENAPI_SPEC_SHA256` follows the updated spec.
+
 ## 0.11.0
 
 ### Added

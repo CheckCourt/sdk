@@ -1,5 +1,5 @@
 export declare const UI_VERSION = "v1";
-export declare const MAX_UI_BLOCKS = 50;
+export declare const MAX_UI_BLOCKS = 100;
 /** Top-level blocks sit at depth 1; a container's children one deeper. */
 export declare const MAX_UI_DEPTH = 3;
 export declare const BADGE_VARIANTS: readonly ["default", "secondary", "outline", "destructive", "warning"];

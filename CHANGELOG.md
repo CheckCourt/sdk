@@ -3,6 +3,11 @@
 All notable changes to `@checkcourt/sdk` are listed here. The SDK is in `0.x`: minor
 versions may contain breaking changes.
 
+## 0.12.0
+
+- `MAX_UI_BLOCKS` is now 100 (was 50): a declarative UI document may contain up to 100
+  blocks in total, nested blocks included. Requires a CheckCourt platform that accepts 100.
+
 ## 0.11.1
 
 - docs: Admin-Pfad Automatisierungen in der API-Beschreibung. Management keys are created under

@@ -3,6 +3,15 @@
 All notable changes to `@checkcourt/sdk` are listed here. The SDK is in `0.x`: minor
 versions may contain breaking changes.
 
+## 0.7.0
+
+### Changed
+
+- Regenerated API types from the updated OpenAPI spec. `POST /members` (invite) now returns
+  `{ success, awaitingAcceptance }`: when an existing account is invited, the membership stays
+  pending until the owner accepts after their next login. Updated descriptions for member update
+  and deletion to reflect the rank checks and pending-invitation rules.
+
 ## 0.6.0
 
 ### Added

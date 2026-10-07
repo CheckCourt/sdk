@@ -242,11 +242,11 @@ export interface paths {
          * @description **Required scope:** `members:invite`
          *
          *     Adds a member to the club. Three flows, decided by the input:
-         *     1. **Email already has an account** (in no other club): the existing user is added to this club.
+         *     1. **Email already has an account** (in no other club): the account owner is invited. The membership stays pending (`awaitingAcceptance: true`) until they accept after their next login; until then the club cannot change the account's name, email, phone or password, and deleting the member only withdraws the invitation. `sendEmail` controls the invitation mail.
          *     2. **New email**: a new account is created and, unless `sendEmail=false`, a welcome mail with a claim link is sent.
          *     3. **`noOwnEmail=true`**: for members without their own mailbox. Creates an account with a synthetic address, stores the given email as forwarding address and requires a `password` (min 8 chars) the member uses to log in.
          *
-         *     `roleIds` (optional) assigns roles besides the base role Mitglied (member) and requires `roles:manage`, which only personal keys can hold: the caller must outrank each role and hold all of its scopes (403). Unknown ids fail with 404 before anything is created.
+         *     `roleIds` (optional) assigns roles besides the base role Mitglied and requires `roles:manage`, which only personal keys can hold: the caller must outrank each role and hold all of its scopes (403). Unknown ids fail with 404 before anything is created.
          *
          *     Fails with 422 when the club's member limit is reached, the member number is taken, the email already belongs to this club, or the data processing agreement (AVV) has not been signed yet.
          */
@@ -302,7 +302,7 @@ export interface paths {
          * End a membership
          * @description **Required scope:** `members:delete`
          *
-         *     Removes the member from the club with a full cascade: future bookings are cancelled (with email notification), open guest fees are resolved according to `orphanedFeeAction`, and if this was the user's only club the account is anonymized. Members who lead a team cannot be deleted until leadership is handed over, and the club's last administrator cannot be deleted (422). The response summarizes what happened.
+         *     Removes the member from the club with a full cascade: future bookings are cancelled (with email notification), open guest fees are resolved according to `orphanedFeeAction`, and if this was the user's only club the account is anonymized (not for a pending invitation, which only withdraws the invitation). The caller must outrank the member (403): only administrators may delete members holding an equal or higher role; management keys act with their creator's rank but never on administrators. Members who lead a team cannot be deleted until leadership is handed over, and the club's last administrator cannot be deleted (422). The response summarizes what happened.
          */
         delete: operations["deleteMember"];
         options?: never;
@@ -311,7 +311,7 @@ export interface paths {
          * Update a member
          * @description **Required scope:** `members:write`
          *
-         *     `name` and `email` are required (send the current values to keep them); `phone` and `memberNumber` are optional. For forwarding-only accounts the email update changes the forwarding address, not the login address. If the user is also a member of another club, name/email/phone are left untouched (they are account-level) and only the member number changes. Sessions cannot edit their own account; management keys are exempt from that rule. Member numbers are unique per club (422 on collision). Roles are not part of this endpoint: use `PUT /members/{id}/roles`. Sending `role` fails with 400.
+         *     `name` and `email` are required (send the current values to keep them); `phone` and `memberNumber` are optional. For forwarding-only accounts the email update changes the forwarding address, not the login address. If the user is also a member of another club, name/email/phone are left untouched (they are account-level) and only the member number changes. Sessions cannot edit their own account; management keys are exempt from that rule. Changing the email requires outranking the member (403): only administrators may change the email of members holding an equal or higher role; management keys act with their creator's rank but never on administrators. While the member's invitation is pending, changing name, email or phone fails with 422. Member numbers are unique per club (422 on collision). Roles are not part of this endpoint: use `PUT /members/{id}/roles`. Sending `role` fails with 400.
          */
         patch: operations["updateMember"];
         trace?: never;
@@ -3586,7 +3586,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Success"];
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        /** @description True when an existing account was invited and its owner still has to accept */
+                        awaitingAcceptance: boolean;
+                    };
                 };
             };
             400: components["responses"]["ValidationError"];

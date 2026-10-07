@@ -276,6 +276,31 @@ if (ext.point === "nav.page") {
 }
 ```
 
+#### Permissions for the club's roles
+
+A club app can offer its own rights (at most `MAX_APP_PERMISSIONS`, keys matching
+`APP_PERMISSION_KEY_PATTERN`). The club decides in its role editor which roles hold them; only
+administrators hold them from the start. Every extension request carries the viewer's flags
+for all declared keys in `viewer.capabilities.permissions`, and a `nav.page` with `requires`
+is only listed and opened for holders:
+
+```ts
+defineManifest({
+  installTargets: ["tenant"],
+  permissions: [{ key: "manage_ladder", label: "Rangliste verwalten", description: "Darf Ergebnisse korrigieren" }],
+  extensions: [
+    { point: "nav.page", kind: "declarative", url: "https://ladder.example.de/ext/admin", label: "Rangliste", icon: "trophy", requires: "manage_ladder" },
+    { point: "dashboard.widget", kind: "declarative", url: "https://ladder.example.de/ext/widget" },
+  ],
+  dataProcessing: { categories: ["Spielergebnisse"], purpose: "Führt die Rangliste", storageLocation: "EU", avvRequired: false },
+});
+
+const { context } = ext; // from verifyExtensionRequest, as above
+if (context.viewer.capabilities.permissions?.manage_ladder) {
+  // show the edit buttons
+}
+```
+
 ### OAuth with PKCE (member apps)
 
 ```ts

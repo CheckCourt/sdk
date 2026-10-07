@@ -3,6 +3,21 @@
 All notable changes to `@checkcourt/sdk` are listed here. The SDK is in `0.x`: minor
 versions may contain breaking changes.
 
+## 0.11.0
+
+### Added
+
+- `permissions` in the manifest (type `AppPermission`): rights a club app offers the club's
+  roles, each with a `key` (`APP_PERMISSION_KEY_PATTERN`, unique), a German `label` (at most
+  `APP_PERMISSION_LABEL_MAX` characters) and an optional `description` (at most
+  `APP_PERMISSION_DESCRIPTION_MAX`). At most `MAX_APP_PERMISSIONS` (10), club installations
+  only. Clubs choose the roles in their role editor; only administrators hold a new right.
+- `requires` on `nav.page`: the key of a declared permission. Only holders see the
+  navigation entry and may open the page and run its actions.
+- `viewer.capabilities.permissions` in the extension context (type
+  `AppPermissionCapabilities`): every declared key with whether the viewer holds it, at every
+  point, when the manifest declares permissions.
+
 ## 0.10.0
 
 ### Added

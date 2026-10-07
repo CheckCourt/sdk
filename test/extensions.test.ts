@@ -43,6 +43,16 @@ describe("verifyExtensionContext", () => {
     if (result.point === "booking.detail.panel") expect(result.subject.id).toBe("b1");
   });
 
+  it("types the viewer's app permissions at every point", async () => {
+    const token = jwt(
+      { alg: "HS256" },
+      { ...claims, viewer: { user_id: "psn_1", capabilities: { is_booker: true, permissions: { manage_ladder: true } } } },
+    );
+    const result = await verifyExtensionContext(token, secret, { now });
+    const permissions: Record<string, boolean> | undefined = result.viewer.capabilities.permissions;
+    expect(permissions).toEqual({ manage_ladder: true });
+  });
+
   it("applies 30 s leeway on both ends", async () => {
     const token = jwt({ alg: "HS256" }, claims);
     await expect(verifyExtensionContext(token, secret, { now: now + 330 })).resolves.toBeTruthy();

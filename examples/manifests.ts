@@ -24,7 +24,18 @@ export const clubApp = defineManifest({
       icon: "door-open",
     },
     { point: "sidebar.action", kind: "declarative", url: "https://door.example.de/ext/status", label: "Türstatus" },
-    { point: "nav.page", kind: "declarative", url: "https://door.example.de/ext/page", label: "Türprotokoll", icon: "key-round" },
+    {
+      point: "nav.page",
+      kind: "declarative",
+      url: "https://door.example.de/ext/page",
+      label: "Türprotokoll",
+      icon: "key-round",
+      requires: "view_door_log",
+    },
+  ],
+  permissions: [
+    { key: "view_door_log", label: "Türprotokoll sehen", description: "Sieht, wann welche Tür geöffnet wurde" },
+    { key: "open_doors", label: "Türen jederzeit öffnen" },
   ],
   settingsSchema: {
     type: "object",

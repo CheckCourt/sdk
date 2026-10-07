@@ -72,6 +72,15 @@ export interface PointCapabilities {
   "nav.page": Record<string, never>;
 }
 
+/**
+ * Present at every point when the app's manifest declares `permissions`: each declared key with
+ * whether the viewer holds it (through a club role; administrators hold all). Absent otherwise.
+ * `false` at the kiosk, where nobody is signed in.
+ */
+export interface AppPermissionCapabilities {
+  permissions?: Record<string, boolean>;
+}
+
 export interface PointSubject {
   "app.settings": { type: "installation"; id: string };
   "booking.detail.panel": { type: "booking"; id: string };
@@ -101,7 +110,7 @@ interface ContextClaimsOf<P extends ExtensionPoint> {
   viewer: {
     /** null on the kiosk; a stable `psn_…` pseudonym unless the installation holds `members:read`. */
     user_id: string | null;
-    capabilities: PointCapabilities[P];
+    capabilities: PointCapabilities[P] & AppPermissionCapabilities;
   };
   iat: number;
   exp: number;

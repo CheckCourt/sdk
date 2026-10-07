@@ -57,6 +57,27 @@ export const STATIC_ACTION_LABEL_MAX = 24;
 export const IFRAME_EXTENSION_HEIGHT_MIN = 120;
 export const IFRAME_EXTENSION_HEIGHT_MAX = 2000;
 
+/** Keys of app permissions: lowercase letters, digits and `_`, starting with a letter, at most 40 characters. */
+export const APP_PERMISSION_KEY_PATTERN = /^[a-z][a-z0-9_]{0,39}$/;
+/** Most permissions one manifest may declare. */
+export const MAX_APP_PERMISSIONS = 10;
+export const APP_PERMISSION_LABEL_MAX = 60;
+export const APP_PERMISSION_DESCRIPTION_MAX = 200;
+
+/**
+ * A right the app offers the club's roles, e.g. who may manage its ladder. The club decides in
+ * its role editor which roles hold it; only administrators hold it from the start. Viewers' flags
+ * arrive as `viewer.capabilities.permissions` in the extension context.
+ */
+export interface AppPermission {
+  /** Matches `APP_PERMISSION_KEY_PATTERN`, unique within the manifest. */
+  key: string;
+  /** Shown in the role editor, German, 1 to 60 characters, e.g. "Rangliste verwalten". */
+  label: string;
+  /** Up to 200 characters. */
+  description?: string;
+}
+
 /** lucide icon names a static action or `nav.page` may use as `icon`. */
 export const APP_ACTION_ICONS = [
   "bell",
@@ -178,6 +199,11 @@ type ExtensionOf<P extends ExtensionPoint> = {
         /** Navigation entry and page title, 1 to 24 characters (`STATIC_ACTION_LABEL_MAX`). */
         label: string;
         icon: AppActionIcon;
+        /**
+         * Key of one of the manifest's `permissions`: only holders see the entry and may open
+         * the page; CheckCourt enforces it for the page and its actions.
+         */
+        requires?: string;
       }
     : P extends "booking.action"
       ? { /** Button text, 1 to 40 characters. */ label: string; icon?: never }
@@ -310,6 +336,8 @@ export interface Manifest {
   /** At most 20. */
   extensions?: readonly ManifestExtension[];
   settingsSchema?: SettingsSchema;
+  /** Rights the app offers the club's roles (at most 10). Club installations only. */
+  permissions?: readonly AppPermission[];
   dataProcessing: DataProcessing;
   /** Metadata other apps may read (at most 20). Club installations only. */
   shares?: { metadata: readonly SharedMetadata[] };

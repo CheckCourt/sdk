@@ -41,6 +41,12 @@ export const STATIC_ACTION_LABEL_MAX = 24;
 /** Bounds of an iframe extension's initial `height` in pixels. */
 export const IFRAME_EXTENSION_HEIGHT_MIN = 120;
 export const IFRAME_EXTENSION_HEIGHT_MAX = 2000;
+/** Keys of app permissions: lowercase letters, digits and `_`, starting with a letter, at most 40 characters. */
+export const APP_PERMISSION_KEY_PATTERN = /^[a-z][a-z0-9_]{0,39}$/;
+/** Most permissions one manifest may declare. */
+export const MAX_APP_PERMISSIONS = 10;
+export const APP_PERMISSION_LABEL_MAX = 60;
+export const APP_PERMISSION_DESCRIPTION_MAX = 200;
 /** lucide icon names a static action or `nav.page` may use as `icon`. */
 export const APP_ACTION_ICONS = [
     "bell",

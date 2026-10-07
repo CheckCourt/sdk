@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { exampleManifests } from "../examples/manifests.js";
 import {
   APP_ACTION_ICONS,
+  APP_PERMISSION_KEY_PATTERN,
   EXTENSION_POINTS,
+  MAX_APP_PERMISSIONS,
   EXTENSION_POINT_SCOPE,
   IFRAME_EXTENSION_HEIGHT_MAX,
   IFRAME_EXTENSION_HEIGHT_MIN,
@@ -130,6 +132,33 @@ describe("manifest", () => {
       { point: "sidebar.action", kind: "iframe", url: "https://a.example.de/side", label: "Status" },
     ];
     expect(rejected).toHaveLength(6);
+  });
+
+  it("declares permissions and lets nav.page require one", () => {
+    expect(MAX_APP_PERMISSIONS).toBe(10);
+    expect(APP_PERMISSION_KEY_PATTERN.test("manage_ladder")).toBe(true);
+    expect(APP_PERMISSION_KEY_PATTERN.test("Manage-Ladder")).toBe(false);
+    const m = defineManifest({
+      ...base,
+      permissions: [{ key: "manage_ladder", label: "Rangliste verwalten", description: "Darf Ergebnisse korrigieren" }],
+      extensions: [
+        {
+          point: "nav.page",
+          kind: "declarative",
+          url: "https://a.example.de/page",
+          label: "Rangliste",
+          icon: "trophy",
+          requires: "manage_ladder",
+        },
+      ],
+    });
+    expect(m.extensions[0].requires).toBe("manage_ladder");
+
+    const rejected: ManifestExtension[] = [
+      // @ts-expect-error requires only on nav.page
+      { point: "dashboard.widget", kind: "declarative", url: "https://a.example.de/w", requires: "manage_ladder" },
+    ];
+    expect(rejected).toHaveLength(1);
   });
 
   it("keeps the examples within the platform's label limit", () => {

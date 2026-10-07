@@ -157,17 +157,23 @@ describe("host surface requests", () => {
     );
   });
 
-  it("verifies booking_plan.action renders and actions with the day as subject", async () => {
+  it("verifies booking_plan.action renders and actions with the day, courts and subject", async () => {
     const subject = { type: "booking_plan", id: "2026-10-07" };
+    const date = "2026-10-07";
+    const courts = [
+      { id: 1, name: "Platz 1" },
+      { id: 2, name: "Platz 2" },
+    ];
     const token = surfaceClaims("booking_plan.action", subject, { can_edit_bookings: false });
-    const render = await verify(token, { point: "booking_plan.action", subject });
-    expect(render).toEqual({ kind: "render", context: expect.anything(), point: "booking_plan.action", subject });
+    const render = await verify(token, { point: "booking_plan.action", subject, date, courts });
+    expect(render).toMatchObject({ kind: "render", point: "booking_plan.action", subject, date, courts });
     if (render.context.point === "booking_plan.action") expect(render.context.subject.id).toBe("2026-10-07");
-    const action = await verify(token, { point: "booking_plan.action", subject, action_id: "close", values: {} });
-    expect(action).toMatchObject({ kind: "action", actionId: "close", subject });
-    expect(await reason(verify(token, { point: "booking_plan.action", subject: { ...subject, id: "2026-10-08" } }))).toBe(
-      "context_mismatch",
-    );
+    const action = await verify(token, { point: "booking_plan.action", subject, date, courts, action_id: "close", values: {} });
+    expect(action).toMatchObject({ kind: "action", actionId: "close", subject, date, courts });
+    expect(await reason(verify(token, { point: "booking_plan.action", subject, courts }))).toBe("invalid_body");
+    expect(
+      await reason(verify(token, { point: "booking_plan.action", subject: { ...subject, id: "2026-10-08" }, date, courts })),
+    ).toBe("context_mismatch");
   });
 
   it("adds no surface fields to other points", async () => {

@@ -165,7 +165,7 @@ export async function verifyExtensionContext(
   return claims;
 }
 
-/** A court of the plan a `court.annotation` request covers. */
+/** A court of the plan a `court.annotation` or `booking_plan.action` request covers. */
 export interface AnnotationCourt {
   id: number;
   name: string;
@@ -199,9 +199,9 @@ export interface ExtensionRenderRequest {
   context: ExtensionContextClaims;
   point: ExtensionPoint;
   subject: ExtensionSubject | null;
-  /** `court.annotation`: the plan's day, YYYY-MM-DD. */
+  /** `court.annotation` and `booking_plan.action`: the plan's day, YYYY-MM-DD. */
   date?: string;
-  /** `court.annotation`: every court of the plan, answered in one document. */
+  /** `court.annotation` (one document for all) and `booking_plan.action`: every court of the plan. */
   courts?: AnnotationCourt[];
   /** `member.list.column`: the members on the visible page. */
   members?: ColumnMember[];
@@ -217,6 +217,10 @@ export interface ExtensionActionRequest {
   subject: ExtensionSubject | null;
   actionId: string;
   values: UiFormValues;
+  /** `booking_plan.action`: the plan's day, YYYY-MM-DD. */
+  date?: string;
+  /** `booking_plan.action`: every court of the plan, so a form can offer a court select. */
+  courts?: AnnotationCourt[];
 }
 
 export type ExtensionRequest = ExtensionRenderRequest | ExtensionActionRequest;
@@ -241,16 +245,21 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^\d{2}:\d{2}$/;
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
+/** Parses the `date` and `courts` a court.annotation or booking_plan.action request carries. */
+function planCourts(body: Record<string, unknown>): { date: string; courts: AnnotationCourt[] } {
+  const { date, courts } = body;
+  if (typeof date !== "string" || !DATE.test(date)) throw fail("invalid_body", "date is not YYYY-MM-DD");
+  if (!Array.isArray(courts) || !courts.every((c) => isObject(c) && typeof c.id === "number" && typeof c.name === "string")) {
+    throw fail("invalid_body", "courts is not a list of { id, name }");
+  }
+  return { date, courts: courts.map((c: AnnotationCourt) => ({ id: c.id, name: c.name })) };
+}
+
 function surfaceFields(point: ExtensionPoint, body: Record<string, unknown>): Partial<ExtensionRenderRequest> {
   switch (point) {
-    case "court.annotation": {
-      const { date, courts } = body;
-      if (typeof date !== "string" || !DATE.test(date)) throw fail("invalid_body", "date is not YYYY-MM-DD");
-      if (!Array.isArray(courts) || !courts.every((c) => isObject(c) && typeof c.id === "number" && typeof c.name === "string")) {
-        throw fail("invalid_body", "courts is not a list of { id, name }");
-      }
-      return { date, courts: courts.map((c: AnnotationCourt) => ({ id: c.id, name: c.name })) };
-    }
+    case "court.annotation":
+    case "booking_plan.action":
+      return planCourts(body);
     case "member.list.column": {
       const { members } = body;
       if (
@@ -295,7 +304,8 @@ function surfaceFields(point: ExtensionPoint, body: Record<string, unknown>): Pa
  * Verifies a declarative extension POST: the `CheckCourt-Signature` over the raw body (it binds
  * `action_id` and `values` to the token), the context token, and that body, header token and
  * claims agree. Renders at `court.annotation`, `member.list.column` and `booking.hint` also
- * carry `date` and `courts`, `members` or `draft`. Throws `ExtensionVerificationError`.
+ * carry `date` and `courts`, `members` or `draft`; `booking_plan.action` renders and actions
+ * carry the plan's `date` and `courts`. Throws `ExtensionVerificationError`.
  */
 export async function verifyExtensionRequest(options: {
   secret: string;
@@ -349,5 +359,6 @@ export async function verifyExtensionRequest(options: {
     subject,
     actionId: body.action_id,
     values: values as UiFormValues,
+    ...(context.point === "booking_plan.action" ? planCourts(body) : {}),
   };
 }

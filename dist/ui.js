@@ -40,6 +40,12 @@ const field = {
     switch(name, label, options = {}) {
         return { type: "switch", name, label, ...options };
     },
+    date(name, label, options = {}) {
+        return compact({ type: "date", name, label, ...options });
+    },
+    time(name, label, options = {}) {
+        return compact({ type: "time", name, label, ...options });
+    },
 };
 function compact(value) {
     return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined));

@@ -84,17 +84,21 @@ function sameSubject(a, b) {
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^\d{2}:\d{2}$/;
 const isObject = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
+/** Parses the `date` and `courts` a court.annotation or booking_plan.action request carries. */
+function planCourts(body) {
+    const { date, courts } = body;
+    if (typeof date !== "string" || !DATE.test(date))
+        throw fail("invalid_body", "date is not YYYY-MM-DD");
+    if (!Array.isArray(courts) || !courts.every((c) => isObject(c) && typeof c.id === "number" && typeof c.name === "string")) {
+        throw fail("invalid_body", "courts is not a list of { id, name }");
+    }
+    return { date, courts: courts.map((c) => ({ id: c.id, name: c.name })) };
+}
 function surfaceFields(point, body) {
     switch (point) {
-        case "court.annotation": {
-            const { date, courts } = body;
-            if (typeof date !== "string" || !DATE.test(date))
-                throw fail("invalid_body", "date is not YYYY-MM-DD");
-            if (!Array.isArray(courts) || !courts.every((c) => isObject(c) && typeof c.id === "number" && typeof c.name === "string")) {
-                throw fail("invalid_body", "courts is not a list of { id, name }");
-            }
-            return { date, courts: courts.map((c) => ({ id: c.id, name: c.name })) };
-        }
+        case "court.annotation":
+        case "booking_plan.action":
+            return planCourts(body);
         case "member.list.column": {
             const { members } = body;
             if (!Array.isArray(members) ||
@@ -134,7 +138,8 @@ function surfaceFields(point, body) {
  * Verifies a declarative extension POST: the `CheckCourt-Signature` over the raw body (it binds
  * `action_id` and `values` to the token), the context token, and that body, header token and
  * claims agree. Renders at `court.annotation`, `member.list.column` and `booking.hint` also
- * carry `date` and `courts`, `members` or `draft`. Throws `ExtensionVerificationError`.
+ * carry `date` and `courts`, `members` or `draft`; `booking_plan.action` renders and actions
+ * carry the plan's `date` and `courts`. Throws `ExtensionVerificationError`.
  */
 export async function verifyExtensionRequest(options) {
     try {
@@ -185,5 +190,6 @@ export async function verifyExtensionRequest(options) {
         subject,
         actionId: body.action_id,
         values: values,
+        ...(context.point === "booking_plan.action" ? planCourts(body) : {}),
     };
 }

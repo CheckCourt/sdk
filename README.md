@@ -178,6 +178,21 @@ ui.form({
 });
 ```
 
+`ui.field.date` and `ui.field.time` render native date and time pickers. `default`, `min` and
+`max` are `YYYY-MM-DD` strings for dates and `HH:MM` (24-hour) strings for times; `time` takes an
+optional `step` in minutes. Both submit their value as a string:
+
+```ts
+ui.form({
+  actionId: "block",
+  submitLabel: "Sperren",
+  fields: [
+    ui.field.date("day", "Tag", { min: "2026-01-01", required: true }),
+    ui.field.time("from", "Von", { min: "07:00", max: "22:00", step: 30, required: true }),
+  ],
+});
+```
+
 Compare `context.installation_id` and `context.tenant_id` with what you stored from
 `app.installed` before you act on a request. For the context token alone (for example in
 the backend of an iframe extension), use `verifyExtensionContext(token, secret)`.
@@ -192,7 +207,8 @@ with the matching builder; each throws when the answer would break CheckCourt's 
 | `court.annotation` | `ext.date`, `ext.courts` | `ui.annotations([{ court_id, label, variant? }])`, label up to 24 characters, one per court |
 | `member.list.column` | `ext.members` | `ui.column({ title, values: [{ member_id, text, variant? }] })`, title up to 20, text up to 24 characters |
 | `booking.hint` | `ext.draft` | `ui.hint([...])` with up to 6 text, badge, key_value or link blocks; answer within 1 second |
-| `booking_plan.action`, `sidebar.action` | `booking_plan.action`: the day as subject | `ui.doc([...])`, shown in a dialog after a click; `ui.hidden()` closes it |
+| `booking_plan.action` | `ext.date`, `ext.courts` (and the day as subject) | `ui.doc([...])`, shown in a dialog after a click; `ui.hidden()` closes it |
+| `sidebar.action` | nothing extra | `ui.doc([...])`, shown in a dialog after a click; `ui.hidden()` closes it |
 | `member.settings.section` | nothing extra | `ui.doc([...])`, a card on the member's own settings page |
 
 ```ts

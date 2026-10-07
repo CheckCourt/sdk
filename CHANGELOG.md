@@ -3,6 +3,20 @@
 All notable changes to `@checkcourt/sdk` are listed here. The SDK is in `0.x`: minor
 versions may contain breaking changes.
 
+## 0.6.0
+
+### Added
+
+- `ui.field.date(name, label, { default?, min?, max?, required? })` and
+  `ui.field.time(name, label, { default?, min?, max?, required?, step? })` for native date and
+  time inputs in extension forms. `default`, `min` and `max` are `YYYY-MM-DD` strings for `date`
+  and `HH:MM` (24-hour) strings for `time`; `time` takes an optional `step` in minutes. The
+  submitted value stays a string. Types `UiDateField` and `UiTimeField`, both part of
+  `UiFormField`.
+- `booking_plan.action` render and action requests now carry the plan's `date` and `courts`
+  (`[{ id, name }]`), the same shape `court.annotation` uses, so an app can offer a court select
+  without a separate `GET /courts`. `ExtensionActionRequest` gains optional `date` and `courts`.
+
 ## 0.5.0
 
 ### Added

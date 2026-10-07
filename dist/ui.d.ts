@@ -93,7 +93,33 @@ export type UiSwitchField = {
     label: string;
     default?: boolean;
 };
-export type UiFormField = UiTextField | UiNumberField | UiSelectField | UiSwitchField;
+export type UiDateField = {
+    type: "date";
+    name: string;
+    label: string;
+    /** YYYY-MM-DD. */
+    default?: string;
+    /** YYYY-MM-DD. */
+    min?: string;
+    /** YYYY-MM-DD. */
+    max?: string;
+    required?: boolean;
+};
+export type UiTimeField = {
+    type: "time";
+    name: string;
+    label: string;
+    /** HH:MM, 24-hour. */
+    default?: string;
+    /** HH:MM, 24-hour. */
+    min?: string;
+    /** HH:MM, 24-hour. */
+    max?: string;
+    required?: boolean;
+    /** Granularity of the time picker in minutes. */
+    step?: number;
+};
+export type UiFormField = UiTextField | UiNumberField | UiSelectField | UiSwitchField | UiDateField | UiTimeField;
 export type UiFormBlock = {
     type: "form";
     fields: UiFormField[];
@@ -263,6 +289,8 @@ export declare const ui: {
         number(name: string, label: string, options?: Opt<Omit<UiNumberField, "type" | "name" | "label">>): UiNumberField;
         select(name: string, label: string, options: UiSelectField["options"], extra?: Opt<Pick<UiSelectField, "default" | "required">>): UiSelectField;
         switch(name: string, label: string, options?: Opt<Pick<UiSwitchField, "default">>): UiSwitchField;
+        date(name: string, label: string, options?: Opt<Omit<UiDateField, "type" | "name" | "label">>): UiDateField;
+        time(name: string, label: string, options?: Opt<Omit<UiTimeField, "type" | "name" | "label">>): UiTimeField;
     };
     readonly divider: () => UiDividerBlock;
     readonly stack: (children: UiBlock[]) => UiStackBlock;

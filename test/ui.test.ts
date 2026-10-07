@@ -44,6 +44,29 @@ describe("ui builder", () => {
     expect(ui.field.text("note", "Notiz")).toEqual({ type: "text", name: "note", label: "Notiz" });
   });
 
+  it("builds date and time fields with bounds, and omits unset options", () => {
+    expect(ui.field.date("day", "Tag", { default: "2026-10-07", min: "2026-01-01", max: "2026-12-31", required: true })).toEqual({
+      type: "date",
+      name: "day",
+      label: "Tag",
+      default: "2026-10-07",
+      min: "2026-01-01",
+      max: "2026-12-31",
+      required: true,
+    });
+    expect(ui.field.date("day", "Tag")).toEqual({ type: "date", name: "day", label: "Tag" });
+    expect(ui.field.time("from", "Von", { min: "07:00", max: "22:00", step: 30, required: true })).toEqual({
+      type: "time",
+      name: "from",
+      label: "Von",
+      min: "07:00",
+      max: "22:00",
+      step: 30,
+      required: true,
+    });
+    expect(ui.field.time("to", "Bis")).toEqual({ type: "time", name: "to", label: "Bis" });
+  });
+
   it("builds a hidden document, with an optional toast", () => {
     expect(JSON.stringify(ui.hidden())).toBe('{"ui":"v1","hidden":true}');
     expect(ui.hidden({ toast: toast.success("Erledigt") })).toEqual({

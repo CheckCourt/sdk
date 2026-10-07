@@ -115,7 +115,7 @@ export type ExtensionContextClaims = {
 export declare function verifyExtensionContext(token: string, secret: string, options?: {
     now?: Date | number;
 }): Promise<ExtensionContextClaims>;
-/** A court of the plan a `court.annotation` request covers. */
+/** A court of the plan a `court.annotation` or `booking_plan.action` request covers. */
 export interface AnnotationCourt {
     id: number;
     name: string;
@@ -145,9 +145,9 @@ export interface ExtensionRenderRequest {
     context: ExtensionContextClaims;
     point: ExtensionPoint;
     subject: ExtensionSubject | null;
-    /** `court.annotation`: the plan's day, YYYY-MM-DD. */
+    /** `court.annotation` and `booking_plan.action`: the plan's day, YYYY-MM-DD. */
     date?: string;
-    /** `court.annotation`: every court of the plan, answered in one document. */
+    /** `court.annotation` (one document for all) and `booking_plan.action`: every court of the plan. */
     courts?: AnnotationCourt[];
     /** `member.list.column`: the members on the visible page. */
     members?: ColumnMember[];
@@ -162,6 +162,10 @@ export interface ExtensionActionRequest {
     subject: ExtensionSubject | null;
     actionId: string;
     values: UiFormValues;
+    /** `booking_plan.action`: the plan's day, YYYY-MM-DD. */
+    date?: string;
+    /** `booking_plan.action`: every court of the plan, so a form can offer a court select. */
+    courts?: AnnotationCourt[];
 }
 export type ExtensionRequest = ExtensionRenderRequest | ExtensionActionRequest;
 type HeaderSource = Headers | Record<string, string | string[] | undefined>;
@@ -169,7 +173,8 @@ type HeaderSource = Headers | Record<string, string | string[] | undefined>;
  * Verifies a declarative extension POST: the `CheckCourt-Signature` over the raw body (it binds
  * `action_id` and `values` to the token), the context token, and that body, header token and
  * claims agree. Renders at `court.annotation`, `member.list.column` and `booking.hint` also
- * carry `date` and `courts`, `members` or `draft`. Throws `ExtensionVerificationError`.
+ * carry `date` and `courts`, `members` or `draft`; `booking_plan.action` renders and actions
+ * carry the plan's `date` and `courts`. Throws `ExtensionVerificationError`.
  */
 export declare function verifyExtensionRequest(options: {
     secret: string;

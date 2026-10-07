@@ -194,8 +194,9 @@ ui.form({
 ```
 
 Blocks can carry an `icon` from `UI_ICONS` (text, heading, stat, badge, list items), a `stat`
-can be `size: "lg"`, badges have a soft amber `"warning"` variant, and `ui.columns` lays out 2
-to 6 children in equal widths. A weather widget:
+can be `size: "lg"`, badges have a soft amber `"warning"` variant, `ui.columns` lays out 2
+to 6 children in equal widths, and `ui.row(children, { justify: "between" })` spreads a row
+across the full width (first child left, last child right). A weather widget:
 
 ```ts
 const days = [
@@ -207,10 +208,13 @@ const days = [
 ] as const;
 
 ui.doc([
-  ui.row([
-    ui.stat("Jetzt", "24°", { icon: "sun", size: "lg", hint: "Sonnig" }),
-    ui.badge("Regen möglich", { variant: "warning", icon: "droplets" }),
-  ]),
+  ui.row(
+    [
+      ui.stat("Jetzt", "24°", { icon: "sun", size: "lg", hint: "Sonnig" }),
+      ui.badge("Regen möglich", { variant: "warning", icon: "droplets" }),
+    ],
+    { justify: "between" },
+  ),
   ui.divider(),
   ui.columns(
     days.map(([day, icon, temp]) => ui.stat(day, temp, { icon })),

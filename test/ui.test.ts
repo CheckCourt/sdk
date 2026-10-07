@@ -12,11 +12,13 @@ import {
   MAX_SIDEBAR_ACTIONS,
   MAX_COLUMNS,
   MIN_COLUMNS,
+  ROW_JUSTIFICATIONS,
   UI_ICONS,
   toast,
   ui,
   type BadgeVariant,
   type ColumnsAlignment,
+  type RowJustify,
   type StatSize,
   type UiHintBlock,
   type UiIcon,
@@ -129,6 +131,17 @@ describe("ui builder", () => {
     expect(() => ui.columns([ui.text("a")])).toThrow(RangeError);
     expect(() => ui.columns(Array.from({ length: 7 }, () => ui.text("a")))).toThrow(RangeError);
     expect(() => ui.columns([ui.text("a"), ui.text("b")], { align: "end" as ColumnsAlignment })).toThrow(TypeError);
+  });
+
+  it("builds rows with an optional justify and rejects unknown values", () => {
+    expect(JSON.stringify(ui.row([ui.text("a")]))).toBe('{"type":"row","children":[{"type":"text","text":"a"}]}');
+    expect(ui.row([ui.text("a"), ui.badge("b")], { justify: "between" })).toEqual({
+      type: "row",
+      children: [ui.text("a"), ui.badge("b")],
+      justify: "between",
+    });
+    expect(ROW_JUSTIFICATIONS).toEqual(["start", "between"]);
+    expect(() => ui.row([ui.text("a")], { justify: "end" as RowJustify })).toThrow(TypeError);
   });
 
   it("builds a hidden document, with an optional toast", () => {

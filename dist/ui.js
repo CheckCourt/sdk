@@ -56,6 +56,8 @@ export const UI_ICONS = [
 /** `lg` shows the value as a large display figure, `md` (default) as a regular stat. */
 export const STAT_SIZES = ["md", "lg"];
 export const COLUMNS_ALIGNMENTS = ["start", "center"];
+/** `between` spreads a row's children across the full width, first at the left edge, last at the right. */
+export const ROW_JUSTIFICATIONS = ["start", "between"];
 /** A `columns` block holds 2 to 6 children. */
 export const MIN_COLUMNS = 2;
 export const MAX_COLUMNS = 6;
@@ -273,9 +275,12 @@ export const ui = {
     stack(children) {
         return { type: "stack", children };
     },
-    /** Horizontal, wraps on narrow screens. */
-    row(children) {
-        return { type: "row", children };
+    /** Horizontal, wraps on narrow screens; `justify: "between"` pushes the last child to the right edge. */
+    row(children, options = {}) {
+        if (options.justify !== undefined && !ROW_JUSTIFICATIONS.includes(options.justify)) {
+            throw new TypeError(`row justify must be one of ${ROW_JUSTIFICATIONS.join(", ")}`);
+        }
+        return compact({ type: "row", children, justify: options.justify });
     },
     /** 2 to 6 equal-width columns, optionally with vertical dividers; throws on any other count. */
     columns(children, options = {}) {

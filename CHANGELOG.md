@@ -21,6 +21,10 @@ versions may contain breaking changes.
   `align: "start" | "center"` (`COLUMNS_ALIGNMENTS`). On narrow cards 4 columns wrap to 2 per
   row, 5 and 6 to 3. It counts towards the block and depth limits like `row` and `stack`.
   `ui.columns` throws on any other child count.
+- `justify: "start" | "between"` on `row` (`ROW_JUSTIFICATIONS`, type `RowJustify`) and
+  `ui.row(children, { justify? })`; the `ui.row(children)` form still works. `between` spreads
+  the children across the full width, first at the left edge, last at the right, vertically
+  centered; on narrow cards they still wrap. `ui.row` throws on any other value.
 - Badge variant `"warning"` in `BADGE_VARIANTS` (soft amber), also for `court.annotation`
   and `member.list.column` values.
 - `size: "md" | "lg"` on `stat` (`STAT_SIZES`, type `StatSize`): `lg` shows the value as a

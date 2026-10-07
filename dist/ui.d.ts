@@ -14,6 +14,9 @@ export declare const STAT_SIZES: readonly ["md", "lg"];
 export type StatSize = (typeof STAT_SIZES)[number];
 export declare const COLUMNS_ALIGNMENTS: readonly ["start", "center"];
 export type ColumnsAlignment = (typeof COLUMNS_ALIGNMENTS)[number];
+/** `between` spreads a row's children across the full width, first at the left edge, last at the right. */
+export declare const ROW_JUSTIFICATIONS: readonly ["start", "between"];
+export type RowJustify = (typeof ROW_JUSTIFICATIONS)[number];
 /** A `columns` block holds 2 to 6 children. */
 export declare const MIN_COLUMNS = 2;
 export declare const MAX_COLUMNS = 6;
@@ -154,6 +157,7 @@ export type UiStackBlock = {
 export type UiRowBlock = {
     type: "row";
     children: UiBlock[];
+    justify?: RowJustify;
 };
 /** 2 to 6 children side by side in equal widths; on narrow cards 4 wrap to 2 per row, 5 and 6 to 3. */
 export type UiColumnsBlock = {
@@ -330,8 +334,10 @@ export declare const ui: {
     };
     readonly divider: () => UiDividerBlock;
     readonly stack: (children: UiBlock[]) => UiStackBlock;
-    /** Horizontal, wraps on narrow screens. */
-    readonly row: (children: UiBlock[]) => UiRowBlock;
+    /** Horizontal, wraps on narrow screens; `justify: "between"` pushes the last child to the right edge. */
+    readonly row: (children: UiBlock[], options?: {
+        justify?: RowJustify;
+    }) => UiRowBlock;
     /** 2 to 6 equal-width columns, optionally with vertical dividers; throws on any other count. */
     readonly columns: (children: UiBlock[], options?: {
         dividers?: boolean;

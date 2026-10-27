@@ -1,4 +1,4 @@
-import type { SubscribableEventType } from "./events.js";
+import type { OwnerAudienceEventType, SubscribableEventType } from "./events.js";
 
 export const MANIFEST_VERSION = 1;
 
@@ -169,6 +169,8 @@ export const GRANTABLE_SCOPES = [
   "webhooks:read",
   // App-only: no club role holds it; a member app gets it from the member's consent.
   "notifications:send",
+  // App-only, club apps: put fees on members' fee accounts (needs members:read as well).
+  "charges:write",
 ] as const;
 
 export type GrantableScope = (typeof GRANTABLE_SCOPES)[number];
@@ -332,7 +334,7 @@ export interface Manifest {
   tenantScopes?: readonly GrantableScope[];
   userScopes?: readonly GrantableScope[];
   /** Lifecycle events (`app.*`) arrive without being listed. */
-  events?: readonly SubscribableEventType[];
+  events?: readonly (SubscribableEventType | OwnerAudienceEventType)[];
   /** At most 20. */
   extensions?: readonly ManifestExtension[];
   settingsSchema?: SettingsSchema;

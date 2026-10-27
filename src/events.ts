@@ -48,6 +48,16 @@ export interface GuestFeeEventData {
   amount_cents: number;
 }
 
+/** A fee your app created (`createCharge`) changed state. Only the creating installation receives these. */
+export interface ChargeEventData {
+  charge_id: string;
+  user_id: string;
+  amount_cents: number;
+  /** Your own `reference` from `createCharge`. */
+  reference: string | null;
+  status: "open" | "paid" | "cancelled" | "refunded";
+}
+
 export interface AppLifecycleEventData {
   installation_id: string;
   app_id: string;
@@ -78,6 +88,12 @@ export interface EventDataMap {
   "announcement.published": { announcement_id: string };
   "guest_fee.created": GuestFeeEventData;
   "guest_fee.paid": GuestFeeEventData;
+  /** The club marked a fee your app created as paid. */
+  "charge.paid": ChargeEventData;
+  /** The club undid a payment: the fee is open again. */
+  "charge.reopened": ChargeEventData;
+  /** The fee was cancelled, by your app or because the membership ended. */
+  "charge.cancelled": ChargeEventData;
   /** Names of the changed settings, not their values; read them with `GET /settings`. */
   "settings.updated": { changed_keys: string[] };
   "webhook.test": { webhook_endpoint_id: string };
@@ -129,8 +145,14 @@ export const APP_LIFECYCLE_EVENT_TYPES = [
 
 export type AppLifecycleEventType = (typeof APP_LIFECYCLE_EVENT_TYPES)[number];
 
+/** Events about objects your app created. Listed in a manifest's `events`, delivered only to the creating installation. */
+export const OWNER_AUDIENCE_EVENT_TYPES = ["charge.paid", "charge.reopened", "charge.cancelled"] as const satisfies readonly EventType[];
+
+export type OwnerAudienceEventType = (typeof OWNER_AUDIENCE_EVENT_TYPES)[number];
+
 export const EVENT_TYPES = [
   ...SUBSCRIBABLE_EVENT_TYPES,
+  ...OWNER_AUDIENCE_EVENT_TYPES,
   "webhook.test",
   ...APP_LIFECYCLE_EVENT_TYPES,
 ] as const satisfies readonly EventType[];
@@ -144,6 +166,7 @@ export type EventObjectType =
   | "club_event"
   | "announcement"
   | "guest_fee"
+  | "charge"
   | "tenant"
   | "webhook_endpoint"
   | "app_installation";

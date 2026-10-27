@@ -41,6 +41,15 @@ export interface GuestFeeEventData {
     booking_id: string | null;
     amount_cents: number;
 }
+/** A fee your app created (`createCharge`) changed state. Only the creating installation receives these. */
+export interface ChargeEventData {
+    charge_id: string;
+    user_id: string;
+    amount_cents: number;
+    /** Your own `reference` from `createCharge`. */
+    reference: string | null;
+    status: "open" | "paid" | "cancelled" | "refunded";
+}
 export interface AppLifecycleEventData {
     installation_id: string;
     app_id: string;
@@ -76,6 +85,12 @@ export interface EventDataMap {
     };
     "guest_fee.created": GuestFeeEventData;
     "guest_fee.paid": GuestFeeEventData;
+    /** The club marked a fee your app created as paid. */
+    "charge.paid": ChargeEventData;
+    /** The club undid a payment: the fee is open again. */
+    "charge.reopened": ChargeEventData;
+    /** The fee was cancelled, by your app or because the membership ended. */
+    "charge.cancelled": ChargeEventData;
     /** Names of the changed settings, not their values; read them with `GET /settings`. */
     "settings.updated": {
         changed_keys: string[];
@@ -96,8 +111,11 @@ export type SubscribableEventType = (typeof SUBSCRIBABLE_EVENT_TYPES)[number];
 /** Delivered to the app they concern without being listed in the manifest. */
 export declare const APP_LIFECYCLE_EVENT_TYPES: readonly ["app.installed", "app.uninstalled", "app.upgraded", "app.settings_updated"];
 export type AppLifecycleEventType = (typeof APP_LIFECYCLE_EVENT_TYPES)[number];
-export declare const EVENT_TYPES: readonly ["booking.created", "booking.updated", "booking.cancelled", "booking.checked_in", "member.joined", "member.updated", "member.left", "court.locked", "court.unlocked", "team.created", "team.updated", "team.deleted", "match.created", "match.updated", "match.cancelled", "club_event.created", "club_event.updated", "club_event.cancelled", "club_event.deleted", "announcement.published", "guest_fee.created", "guest_fee.paid", "settings.updated", "webhook.test", "app.installed", "app.uninstalled", "app.upgraded", "app.settings_updated"];
-export type EventObjectType = "booking" | "court" | "member" | "team" | "match" | "club_event" | "announcement" | "guest_fee" | "tenant" | "webhook_endpoint" | "app_installation";
+/** Events about objects your app created. Listed in a manifest's `events`, delivered only to the creating installation. */
+export declare const OWNER_AUDIENCE_EVENT_TYPES: readonly ["charge.paid", "charge.reopened", "charge.cancelled"];
+export type OwnerAudienceEventType = (typeof OWNER_AUDIENCE_EVENT_TYPES)[number];
+export declare const EVENT_TYPES: readonly ["booking.created", "booking.updated", "booking.cancelled", "booking.checked_in", "member.joined", "member.updated", "member.left", "court.locked", "court.unlocked", "team.created", "team.updated", "team.deleted", "match.created", "match.updated", "match.cancelled", "club_event.created", "club_event.updated", "club_event.cancelled", "club_event.deleted", "announcement.published", "guest_fee.created", "guest_fee.paid", "settings.updated", "charge.paid", "charge.reopened", "charge.cancelled", "webhook.test", "app.installed", "app.uninstalled", "app.upgraded", "app.settings_updated"];
+export type EventObjectType = "booking" | "court" | "member" | "team" | "match" | "club_event" | "announcement" | "guest_fee" | "charge" | "tenant" | "webhook_endpoint" | "app_installation";
 export interface WebhookEventOf<T extends EventType> {
     /** `evt_…`, stable across retries and equal to the `CheckCourt-Event-Id` header: deduplicate on it. */
     id: string;

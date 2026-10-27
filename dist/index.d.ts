@@ -3,6 +3,8 @@ export type { CheckCourtClient, CheckCourtClientOptions, RetryOptions } from "./
 export { apiKeyAuth, installationAuth, userAuth } from "./auth.js";
 export { getInstallation, getMe, type AppInstallation, type Me } from "./installation.js";
 export { deleteObjectMetadata, getObjectMetadata, publishAppEvent, putObjectMetadata, type ObjectMetadata, type ObjectMetadataEntry, type ObjectMetadataWritten, type PublishAppEventRequest, type PublishedAppEvent, } from "./connections.js";
+export { createCharge, getCharge, cancelCharge, CHARGE_TITLE_MAX, CHARGE_AMOUNT_MAX_CENTS, type AppCharge, type CreateChargeInput, } from "./charges.js";
+export { memberDirectory, type DirectoryMember, type MemberDirectoryQuery } from "./members.js";
 export { sendNotification, NOTIFICATION_TITLE_MAX, NOTIFICATION_BODY_MAX, type SendNotificationInput, type SendNotificationResponse, } from "./notifications.js";
 export type { AuthContext, AuthStrategy, InstallationAuth, StoredUserTokens, UserAuth } from "./auth.js";
 export * from "./errors.js";

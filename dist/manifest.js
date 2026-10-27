@@ -136,6 +136,8 @@ export const GRANTABLE_SCOPES = [
     "webhooks:read",
     // App-only: no club role holds it; a member app gets it from the member's consent.
     "notifications:send",
+    // App-only, club apps: put fees on members' fee accounts (needs members:read as well).
+    "charges:write",
 ];
 /** Club objects apps can attach metadata to. */
 export const SHARED_OBJECT_TYPES = ["booking", "court", "member"];

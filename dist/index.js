@@ -2,6 +2,8 @@ export { createCheckCourtClient, unwrap, retryAfterMs, TENANT_HEADER } from "./c
 export { apiKeyAuth, installationAuth, userAuth } from "./auth.js";
 export { getInstallation, getMe } from "./installation.js";
 export { deleteObjectMetadata, getObjectMetadata, publishAppEvent, putObjectMetadata, } from "./connections.js";
+export { createCharge, getCharge, cancelCharge, CHARGE_TITLE_MAX, CHARGE_AMOUNT_MAX_CENTS, } from "./charges.js";
+export { memberDirectory } from "./members.js";
 export { sendNotification, NOTIFICATION_TITLE_MAX, NOTIFICATION_BODY_MAX, } from "./notifications.js";
 export * from "./errors.js";
 export * from "./oauth.js";

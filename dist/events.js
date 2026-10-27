@@ -31,8 +31,11 @@ export const APP_LIFECYCLE_EVENT_TYPES = [
     "app.upgraded",
     "app.settings_updated",
 ];
+/** Events about objects your app created. Listed in a manifest's `events`, delivered only to the creating installation. */
+export const OWNER_AUDIENCE_EVENT_TYPES = ["charge.paid", "charge.reopened", "charge.cancelled"];
 export const EVENT_TYPES = [
     ...SUBSCRIBABLE_EVENT_TYPES,
+    ...OWNER_AUDIENCE_EVENT_TYPES,
     "webhook.test",
     ...APP_LIFECYCLE_EVENT_TYPES,
 ];

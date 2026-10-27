@@ -3,6 +3,23 @@
 All notable changes to `@checkcourt/sdk` are listed here. The SDK is in `0.x`: minor
 versions may contain breaking changes.
 
+## 0.13.0
+
+### Added
+- 14 new webhook event types with typed `data`: `team.created`, `team.updated`,
+  `team.deleted`, `match.created`, `match.updated`, `match.cancelled`,
+  `club_event.created`, `club_event.updated`, `club_event.cancelled`,
+  `club_event.deleted`, `announcement.published`, `guest_fee.created`, `guest_fee.paid`
+  and `settings.updated`. All are subscribable in a manifest.
+- API types for the new endpoints: `/announcements`, `/events`, `/posts`,
+  `/work-hours/*`, `/audit-log` and `POST /members/import`; bookings by date range and
+  `updated_since`; cursor pagination (`limit`, `cursor`, `nextCursor`) on members and
+  guest fees; the `Idempotency-Key` header on every `POST`; `graceHours` when rotating a
+  webhook secret.
+
+Requires a CheckCourt platform with the matching API. `verifySignature` already accepts
+the second `v1` signature CheckCourt sends during a webhook secret rotation.
+
 ## 0.12.0
 
 - `MAX_UI_BLOCKS` is now 100 (was 50): a declarative UI document may contain up to 100

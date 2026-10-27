@@ -234,6 +234,8 @@ export interface paths {
          * @description **Required scope:** `members:read_confidential`
          *
          *     Returns the full member directory including contact data, 20 per page. `search` matches name, email, forwarding email, member number and member code (case-insensitive substring). Members awaiting admin approval are sorted first, then alphabetically by name.
+         *
+         *     Cursor mode: pass `limit` (and `cursor` from the previous page) to page through members ordered by name. The `page` parameter is deprecated and kept for existing clients.
          */
         get: operations["listMembers"];
         put?: never;
@@ -644,10 +646,16 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * All bookings of one day, with booker names
+         * Bookings of a day, a date range or changed since a point in time
          * @description **Required scope:** `bookings:read_confidential`
          *
-         *     The reconciliation view for integrations: every booking of the given day including booker names, titles, check-in and cancellation state, i.e. exactly the personal data the anonymous `/availability` endpoint strips away, hence the confidential tier. Cancelled bookings are included (check `cancelledAt`).
+         *     The reconciliation and sync view for integrations: bookings including booker names, titles, check-in and cancellation state, i.e. exactly the personal data the anonymous `/availability` endpoint strips away, hence the confidential tier. Cancelled bookings are included (check `cancelledAt`).
+         *
+         *     Three modes, pick one:
+         *
+         *     - `date`: every booking of one day, unpaginated (the original form).
+         *     - `from` and `to`: every booking in the inclusive date range (at most 366 days), ordered by date, start time and id, paginated with `limit` and `cursor`.
+         *     - `updated_since`: every booking created or changed (including cancellations and check-ins) at or after the given instant, ordered by `updatedAt`. Combine it with `from`/`to` to narrow the dates. For an incremental sync, store the `updatedAt` of the last booking you processed and pass it as `updated_since` next time; follow `nextCursor` until it is null. The boundary booking can come back once more, so deduplicate by `id`.
          *
          *     With `respectPrivacy=true` the listing applies the same privacy rules as the member-facing booking plan and masks the booker identity where members opted out of showing their name. App tokens always get these rules, whatever `respectPrivacy` says; a member app still sees its own member's bookings in full.
          */
@@ -768,6 +776,8 @@ export interface paths {
          * @description **Required scope:** `guest_fees:read`
          *
          *     History of guest fees that have been marked as paid, newest settlement first. `search` matches the guest's name and the owing member's name or email. Use `userId` to see one member's history.
+         *
+         *     Cursor mode: pass `limit` (and `cursor` from the previous page) to page through settled fees, newest settlement first. `page` and `pageSize` are deprecated and kept for existing clients.
          */
         get: operations["listPaidGuestFees"];
         put?: never;
@@ -1341,7 +1351,7 @@ export interface paths {
          * Rotate the signing secret
          * @description **Required scope:** `webhooks:manage`
          *
-         *     Generates a new secret and returns it once. The old secret stops working immediately; pending retries are signed with the new one. Returns 422 `BUSINESS_RULE` while the club has webhooks switched off.
+         *     Generates a new secret and returns it once. For a grace period (default 24 hours) the old secret stays valid: every delivery carries two `v1` signatures in `CheckCourt-Signature`, one per secret, so receivers that verify any matching `v1` keep working while you switch over. Pass `graceHours: 0` to revoke the old secret at once, for example after a leak. Returns 422 `BUSINESS_RULE` while the club has webhooks switched off.
          */
         post: operations["rotateWebhookSecret"];
         delete?: never;
@@ -1654,6 +1664,317 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/announcements": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List announcements
+         * @description **Required scope:** `announcements:read`
+         *
+         *     Pinned announcements first, then newest. Expired ones are left out unless `includeExpired=true`. App tokens get `authorName` and `authorTenantUserId` as null.
+         */
+        get: operations["listAnnouncements"];
+        put?: never;
+        /**
+         * Publish an announcement
+         * @description **Required scope:** `announcements:write`
+         *
+         *     Publishes immediately and emits `announcement.published`. With `notifyByEmail: true` members get an email digest. Requires the club feed to be active (422 `BUSINESS_RULE` otherwise).
+         */
+        post: operations["createAnnouncement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/announcements/{id}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete an announcement
+         * @description **Required scope:** `announcements:write`
+         *
+         *     Removes the announcement and its attachments.
+         */
+        delete: operations["deleteAnnouncement"];
+        options?: never;
+        head?: never;
+        /**
+         * Change an announcement
+         * @description **Required scope:** `announcements:write`
+         *
+         *     Send only the fields to change.
+         */
+        patch: operations["updateAnnouncement"];
+        trace?: never;
+    };
+    "/events": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List club events
+         * @description **Required scope:** `events:read`
+         *
+         *     Ordered by start. Past events are left out unless `includePast=true`.
+         */
+        get: operations["listClubEvents"];
+        put?: never;
+        /**
+         * Create a club event
+         * @description **Required scope:** `events:write`
+         *
+         *     Creates the event and emits `club_event.created`. Times need an explicit offset. With `rsvpEnabled: false` the event is calendar-only and `rsvpDeadline`/`capacity` are dropped. Requires the club feed to be active (422 `BUSINESS_RULE` otherwise).
+         */
+        post: operations["createClubEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/events/{id}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a club event
+         * @description **Required scope:** `events:write`
+         *
+         *     Deletes the event with its responses and attachments; emits `club_event.deleted`.
+         */
+        delete: operations["deleteClubEvent"];
+        options?: never;
+        head?: never;
+        /**
+         * Change, cancel or reinstate a club event
+         * @description **Required scope:** `events:write`
+         *
+         *     Send only the fields to change. `cancelled: true` cancels the event (`club_event.cancelled`), `false` reinstates it.
+         */
+        patch: operations["updateClubEvent"];
+        trace?: never;
+    };
+    "/posts": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List feed posts
+         * @description **Required scope:** `posts:read`
+         *
+         *     Newest first. App tokens get `authorName` and `authorTenantUserId` as null.
+         */
+        get: operations["listPosts"];
+        put?: never;
+        /**
+         * Write a feed post
+         * @description **Required scope:** `posts:write`
+         *
+         *     Posts appear under the calling member's name, so this needs a key that acts as a member (personal key or member app token); a club management key gets 400 `VALIDATION`.
+         */
+        post: operations["createPost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posts/{id}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a post
+         * @description **Required scope:** `posts:read`
+         *
+         *     Authors delete their own posts; deleting someone else's needs `posts:moderate`.
+         */
+        delete: operations["deletePost"];
+        options?: never;
+        head?: never;
+        /**
+         * Edit an own post
+         * @description **Required scope:** `posts:write`
+         *
+         *     Only the author can edit a post; anyone else gets 403.
+         */
+        patch: operations["updatePost"];
+        trace?: never;
+    };
+    "/work-hours/tasks": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List work tasks
+         * @description **Required scope:** `work_hours:read`
+         *
+         *     Open tasks with sign-ups and approved minutes. Closed ones only with `includeClosed=true`. Returns 422 `BUSINESS_RULE` while the club has work hours switched off. App tokens get an empty `signups` list; `signupCount` stays.
+         */
+        get: operations["listWorkTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/work-hours/entries": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List logged hours
+         * @description **Required scope:** `work_hours:manage`
+         *
+         *     Every member's logged entries, newest work date first.
+         */
+        get: operations["listWorkEntries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/work-hours/summary": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Per-member totals for a period
+         * @description **Required scope:** `work_hours:manage`
+         *
+         *     Target, approved and pending minutes per member for the period that contains `year` (default: the current one). `years` lists the periods that have data.
+         */
+        get: operations["getWorkHoursSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit-log": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the activity log
+         * @description **Required scope:** `audit:read`
+         *
+         *     Newest first. Filter by exact `action` (e.g. `booking.cancelled`) and `since`. Personal values in `details` are redacted unless the key also holds `members:read_confidential`, as in the admin UI.
+         */
+        get: operations["listAuditLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/members/import": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import members in bulk
+         * @description **Required scope:** `members:invite`
+         *
+         *     Same rules as the import in the admin area: up to 1,000 rows per call, rows with a missing name or invalid email are skipped and reported in `skips`, accounts already in another club are not taken over. `consentConfirmed: true` confirms that the club informed its members (GDPR Art. 13/14) and is stored in the audit log. With `sendInvites: true` every new member gets an invitation email. Refused (422 `BUSINESS_RULE`) while the data processing agreement is unsigned, the member limit is reached or the club is a sandbox.
+         */
+        post: operations["importMembers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1673,7 +1994,7 @@ export interface components {
                  * @description Machine-readable error class. Use this for branching; `message` is for humans.
                  * @enum {string}
                  */
-                code: "UNAUTHORIZED" | "VALIDATION" | "FORBIDDEN" | "NOT_FOUND" | "BUSINESS_RULE" | "RATE_LIMITED";
+                code: "UNAUTHORIZED" | "VALIDATION" | "FORBIDDEN" | "NOT_FOUND" | "BUSINESS_RULE" | "RATE_LIMITED" | "CONFLICT" | "INTERNAL";
                 /** @description Human-readable error message. Currently German, may change; do not parse. */
                 message: string;
             };
@@ -1874,12 +2195,19 @@ export interface components {
         };
         MemberPage: {
             members: components["schemas"]["MemberSummary"][];
-            /** @description Total matching members across all pages */
-            total: number;
-            page: number;
-            /** @constant */
-            pageSize: 20;
-            totalPages: number;
+            /** @description Total matching members across all pages Only in the deprecated `page` mode. */
+            total?: number;
+            /** @description Only in the deprecated `page` mode. */
+            page?: number;
+            /**
+             * @description Only in the deprecated `page` mode.
+             * @constant
+             */
+            pageSize?: 20;
+            /** @description Only in the deprecated `page` mode. */
+            totalPages?: number;
+            /** @description Only in cursor mode (`limit` or `cursor` given): pass as `cursor` for the next page; null on the last page. */
+            nextCursor?: string | null;
         };
         /**
          * @description Competition class of a team
@@ -2210,10 +2538,16 @@ export interface components {
         };
         PaidGuestFeePage: {
             entries: components["schemas"]["PaidGuestFeeEntry"][];
-            total: number;
-            page: number;
-            pageSize: number;
-            totalPages: number;
+            /** @description Only in the deprecated `page` mode. */
+            total?: number;
+            /** @description Only in the deprecated `page` mode. */
+            page?: number;
+            /** @description Only in the deprecated `page` mode. */
+            pageSize?: number;
+            /** @description Only in the deprecated `page` mode. */
+            totalPages?: number;
+            /** @description Only in cursor mode (`limit` or `cursor` given): pass as `cursor` for the next page; null on the last page. */
+            nextCursor?: string | null;
         };
         OpenGuestFeeEntry: {
             id?: string;
@@ -2429,6 +2763,11 @@ export interface components {
             /** Format: date-time */
             cancelledAt?: string | null;
             cancelReason?: string | null;
+            /**
+             * Format: date-time
+             * @description Last change, including cancellation and check-in. Present in the paginated modes.
+             */
+            updatedAt?: string;
         };
         CreateMyBookingRequest: {
             courtId: number;
@@ -2577,7 +2916,7 @@ export interface components {
          * @description Event types an endpoint can subscribe to. Test events (`webhook.test`) are sent only on request and cannot be subscribed to.
          * @enum {string}
          */
-        WebhookEventType: "booking.created" | "booking.updated" | "booking.cancelled" | "booking.checked_in" | "member.joined" | "member.updated" | "member.left" | "court.locked" | "court.unlocked";
+        WebhookEventType: "booking.created" | "booking.updated" | "booking.cancelled" | "booking.checked_in" | "member.joined" | "member.updated" | "member.left" | "court.locked" | "court.unlocked" | "team.created" | "team.updated" | "team.deleted" | "match.created" | "match.updated" | "match.cancelled" | "club_event.created" | "club_event.updated" | "club_event.cancelled" | "club_event.deleted" | "announcement.published" | "guest_fee.created" | "guest_fee.paid" | "settings.updated";
         /** @description A webhook endpoint. The signing secret is never part of this object; it is returned once by create and rotate-secret. */
         Webhook: {
             /** @description Prefixed `we_` */
@@ -2637,7 +2976,7 @@ export interface components {
             createdAt: string;
         };
         /**
-         * @description Body of every webhook request. `data` depends on `type`: booking events carry `booking_id, court_id, date, start_time, end_time, type`; member events `member_id, user_id` (`member.updated` adds `changed_fields`); court events `court_id, date, start_time, end_time` (date and times are null when the whole court is (un)locked); `webhook.test` carries `webhook_endpoint_id`.
+         * @description Body of every webhook request. `data` depends on `type`: booking events carry `booking_id, court_id, date, start_time, end_time, type`; member events `member_id, user_id` (`member.updated` adds `changed_fields`); court events `court_id, date, start_time, end_time` (date and times are null when the whole court is (un)locked); team events `team_id` (`team.updated` adds `changed_fields`); match events `match_id, team_id, date, start_time, end_time, is_away`; club event events `event_id, starts_at, ends_at` (ISO instants, `ends_at` may be null); `announcement.published` carries `announcement_id`; guest fee events `charge_id, user_id, booking_id, amount_cents` (cents); `settings.updated` carries `changed_keys`; `webhook.test` carries `webhook_endpoint_id`.
          * @example {
          *       "id": "evt_k1x9q2",
          *       "type": "booking.created",
@@ -2829,6 +3168,138 @@ export interface components {
             /** @description Always true; whether and how the member sees it stays private */
             accepted: boolean;
         };
+        Announcement: {
+            id: string;
+            title: string;
+            /** @description Markdown */
+            body: string;
+            pinned: boolean;
+            authorTenantUserId: string | null;
+            authorName: string | null;
+            /** Format: date-time */
+            publishedAt: string;
+            /** Format: date-time */
+            expiresAt: string | null;
+        };
+        ClubEvent: {
+            id: string;
+            title: string;
+            description?: string | null;
+            location?: string | null;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt?: string | null;
+            rsvpEnabled: boolean;
+            /** Format: date-time */
+            rsvpDeadline?: string | null;
+            capacity?: number | null;
+            /** Format: date-time */
+            cancelledAt: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            acceptedCount: number;
+            /**
+             * @description The calling member's own response; null for club keys
+             * @enum {string|null}
+             */
+            myStatus?: "accepted" | "declined" | "maybe" | null;
+        };
+        Post: {
+            id: string;
+            body: string;
+            authorTenantUserId: string | null;
+            authorName: string | null;
+            isPlatform: boolean;
+            isSystem: boolean;
+            sourceKind?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        WorkTask: {
+            id: string;
+            title: string;
+            description?: string | null;
+            location?: string | null;
+            /** Format: date-time */
+            startsAt?: string | null;
+            /** Format: date-time */
+            endsAt?: string | null;
+            capacity?: number | null;
+            /** @enum {string} */
+            status: "open" | "closed";
+            signupCount: number;
+            signups: {
+                tenantUserId: string;
+                name: string;
+            }[];
+            isSignedUp?: boolean;
+            approvedMinutes: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        WorkEntry: {
+            id: string;
+            workTaskId: string;
+            taskTitle?: string;
+            tenantUserId: string;
+            memberName?: string;
+            minutes: number;
+            /** Format: date */
+            workedOn: string;
+            note?: string | null;
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            /** Format: date-time */
+            createdAt: string;
+        };
+        WorkHoursSummary: {
+            tenantUserId: string;
+            name: string;
+            memberNumber?: string | null;
+            targetMinutes: number;
+            /** @enum {string} */
+            targetSource?: "member" | "group" | "club" | "none";
+            approvedMinutes: number;
+            pendingMinutes: number;
+        };
+        AuditLogEntry: {
+            id: number;
+            /** @example team.created */
+            action: string;
+            userId?: string | null;
+            userName?: string | null;
+            actorType?: string | null;
+            actorId?: string | null;
+            targetType?: string | null;
+            targetId?: string | null;
+            /** @description Action-specific; personal values are redacted unless the key also holds `members:read_confidential`. */
+            details?: {
+                [key: string]: unknown;
+            } | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        MemberImportResult: {
+            /** @description New accounts */
+            created: number;
+            /** @description Existing accounts added to the club */
+            added: number;
+            /** @description Of `added`: accounts without a club whose owner still has to accept */
+            awaitingAcceptance: number;
+            skipped: number;
+            invited: number;
+            skips: {
+                email: string;
+                name: string;
+                /** @enum {string} */
+                reason: "invalid_row" | "invalid_email" | "duplicate_in_file" | "already_member" | "other_club" | "member_number_taken" | "limit_reached";
+                label: string;
+            }[];
+            errors: string[];
+            warnings: string[];
+            limitReached: boolean;
+        };
     };
     responses: {
         /** @description Not authenticated: header missing, key unknown/revoked/expired, or the API key feature is disabled for this club */
@@ -2919,10 +3390,33 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
+        /** @description The `Idempotency-Key` was already used with a different request, or that request is still running */
+        Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "error": {
+                 *         "code": "CONFLICT",
+                 *         "message": "Dieser Idempotency-Key wurde schon für eine andere Anfrage verwendet"
+                 *       }
+                 *     }
+                 */
+                "application/json": components["schemas"]["Error"];
+            };
+        };
     };
     parameters: {
         /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
         XTenantId: string;
+        /** @description Page size. Every paginated list uses `limit` and `cursor`. */
+        Limit: number;
+        /** @description Opaque value from `nextCursor` of the previous page. Omit it for the first page; `nextCursor: null` means there are no more pages. A cursor is only valid with the same filters it was issued for. */
+        Cursor: string;
+        /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+        IdempotencyKey: string;
     };
     requestBodies: never;
     headers: never;
@@ -3043,6 +3537,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path?: never;
             cookie?: never;
@@ -3100,6 +3596,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            409: components["responses"]["Conflict"];
             /** @description Policy denial or time conflict. Policy denials include `canOverride`. */
             422: {
                 headers: {
@@ -3176,6 +3673,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path?: never;
             cookie?: never;
@@ -3209,6 +3708,7 @@ export interface operations {
             400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["BusinessRuleError"];
             429: components["responses"]["RateLimited"];
         };
@@ -3219,6 +3719,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path?: never;
             cookie?: never;
@@ -3253,6 +3755,7 @@ export interface operations {
             400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             429: components["responses"]["RateLimited"];
         };
     };
@@ -3397,6 +3900,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
                 /** @description Numeric court id */
@@ -3447,6 +3952,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             429: components["responses"]["RateLimited"];
         };
     };
@@ -3456,6 +3962,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
                 /** @description Numeric court id */
@@ -3480,6 +3988,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["BusinessRuleError"];
             429: components["responses"]["RateLimited"];
         };
@@ -3491,8 +4000,15 @@ export interface operations {
                 search?: string;
                 /** @description Only members holding this role (id from GET /roles). The base role Mitglied (member) matches everyone. */
                 roleId?: string;
-                /** @description 1-based page number */
+                /**
+                 * @deprecated
+                 * @description 1-based page number Deprecated: use `limit` and `cursor`.
+                 */
                 page?: number;
+                /** @description Page size. Every paginated list uses `limit` and `cursor`. */
+                limit?: components["parameters"]["Limit"];
+                /** @description Opaque value from `nextCursor` of the previous page. Omit it for the first page; `nextCursor: null` means there are no more pages. A cursor is only valid with the same filters it was issued for. */
+                cursor?: components["parameters"]["Cursor"];
             };
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
@@ -3551,6 +4067,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path?: never;
             cookie?: never;
@@ -3597,6 +4115,7 @@ export interface operations {
             400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["BusinessRuleError"];
             429: components["responses"]["RateLimited"];
         };
@@ -3829,6 +4348,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path?: never;
             cookie?: never;
@@ -3868,6 +4389,7 @@ export interface operations {
             400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             429: components["responses"]["RateLimited"];
         };
     };
@@ -3989,6 +4511,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
                 /** @description Team id */
@@ -4028,6 +4552,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             429: components["responses"]["RateLimited"];
         };
     };
@@ -4135,6 +4660,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path?: never;
             cookie?: never;
@@ -4173,6 +4700,7 @@ export interface operations {
             400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             429: components["responses"]["RateLimited"];
         };
     };
@@ -4284,6 +4812,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
                 /** @description Policy id */
@@ -4319,6 +4849,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             429: components["responses"]["RateLimited"];
         };
     };
@@ -4328,6 +4859,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path?: never;
             cookie?: never;
@@ -4360,6 +4893,7 @@ export interface operations {
             400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             429: components["responses"]["RateLimited"];
         };
     };
@@ -4486,9 +5020,31 @@ export interface operations {
     };
     listBookings: {
         parameters: {
-            query: {
-                /** @example 2026-06-15 */
-                date: string;
+            query?: {
+                /**
+                 * @description One day, unpaginated. Cannot be combined with the other modes.
+                 * @example 2026-06-15
+                 */
+                date?: string;
+                /**
+                 * @description First day of the range (inclusive). Requires `to`.
+                 * @example 2026-06-01
+                 */
+                from?: string;
+                /**
+                 * @description Last day of the range (inclusive). Requires `from`.
+                 * @example 2026-06-30
+                 */
+                to?: string;
+                /**
+                 * @description Only bookings created or changed at or after this instant, ordered by `updatedAt`.
+                 * @example 2026-06-15T08:00:00Z
+                 */
+                updated_since?: string;
+                /** @description Page size. Every paginated list uses `limit` and `cursor`. */
+                limit?: components["parameters"]["Limit"];
+                /** @description Opaque value from `nextCursor` of the previous page. Omit it for the first page; `nextCursor: null` means there are no more pages. A cursor is only valid with the same filters it was issued for. */
+                cursor?: components["parameters"]["Cursor"];
                 /** @description Applies the member-facing privacy rules (booking-level showName, category default): bookings whose booker chose to hide their name come back with `bookedBy` and `bookerName` set to null. Use this for display boards and other surfaces that must not out-privilege the public booking plan, even though the key holds the confidential scope. */
                 respectPrivacy?: boolean;
             };
@@ -4501,7 +5057,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description All bookings of the day. */
+            /** @description The bookings. `date` is only present in the single-day mode, `nextCursor` only in the paginated modes. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4510,7 +5066,9 @@ export interface operations {
                     "application/json": {
                         /** Format: date */
                         date?: string;
-                        bookings?: components["schemas"]["BookingWithBooker"][];
+                        bookings: components["schemas"]["BookingWithBooker"][];
+                        /** @description Pass as `cursor` for the next page; null on the last page. */
+                        nextCursor?: string | null;
                     };
                 };
             };
@@ -4549,6 +5107,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path?: never;
             cookie?: never;
@@ -4606,6 +5166,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            409: components["responses"]["Conflict"];
             /** @description Policy denial or time conflict. Policy denials include `canOverride`. */
             422: {
                 headers: {
@@ -4716,6 +5277,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path?: never;
             cookie?: never;
@@ -4750,6 +5313,7 @@ export interface operations {
             400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["BusinessRuleError"];
             429: components["responses"]["RateLimited"];
         };
@@ -4844,10 +5408,20 @@ export interface operations {
                 search?: string;
                 /** @description Only fees owed by this member (user id) */
                 userId?: string;
-                /** @description 1-based page number */
+                /**
+                 * @deprecated
+                 * @description 1-based page number Deprecated: use `limit` and `cursor`.
+                 */
                 page?: number;
-                /** @description Entries per page */
+                /**
+                 * @deprecated
+                 * @description Entries per page Deprecated: use `limit` and `cursor`.
+                 */
                 pageSize?: number;
+                /** @description Page size. Every paginated list uses `limit` and `cursor`. */
+                limit?: components["parameters"]["Limit"];
+                /** @description Opaque value from `nextCursor` of the previous page. Omit it for the first page; `nextCursor: null` means there are no more pages. A cursor is only valid with the same filters it was issued for. */
+                cursor?: components["parameters"]["Cursor"];
             };
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
@@ -4989,6 +5563,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path?: never;
             cookie?: never;
@@ -5020,6 +5596,7 @@ export interface operations {
             400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             429: components["responses"]["RateLimited"];
         };
     };
@@ -5057,6 +5634,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path?: never;
             cookie?: never;
@@ -5094,6 +5673,7 @@ export interface operations {
             400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["BusinessRuleError"];
             429: components["responses"]["RateLimited"];
         };
@@ -5392,6 +5972,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path?: never;
             cookie?: never;
@@ -5438,6 +6020,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["BusinessRuleError"];
             429: components["responses"]["RateLimited"];
         };
@@ -5653,6 +6236,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
                 /** @description Role id (the `id` field from `GET /roles`) */
@@ -5677,6 +6262,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["BusinessRuleError"];
             429: components["responses"]["RateLimited"];
         };
@@ -5720,6 +6306,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
                 /** @description Role id (the `id` field from `GET /roles`) */
@@ -5751,6 +6339,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["BusinessRuleError"];
             429: components["responses"]["RateLimited"];
         };
@@ -5907,6 +6496,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path?: never;
             cookie?: never;
@@ -5948,6 +6539,7 @@ export interface operations {
             400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["BusinessRuleError"];
             429: components["responses"]["RateLimited"];
         };
@@ -6074,6 +6666,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
                 /** @description Webhook id (the `id` field from `GET /webhooks`) */
@@ -6081,7 +6675,22 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                /**
+                 * @example {
+                 *       "graceHours": 24
+                 *     }
+                 */
+                "application/json": {
+                    /**
+                     * @description How long the old secret keeps signing alongside the new one. 0 revokes it immediately.
+                     * @default 24
+                     */
+                    graceHours?: number;
+                };
+            };
+        };
         responses: {
             /** @description The new secret */
             200: {
@@ -6093,12 +6702,19 @@ export interface operations {
                         id: string;
                         /** @description Signing secret (`whsec_...`). Shown only in this response; store it now. */
                         secret: string;
+                        /**
+                         * Format: date-time
+                         * @description When the old secret stops signing; null if it was revoked immediately.
+                         */
+                        previousSecretExpiresAt: string | null;
                     };
                 };
             };
+            400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["BusinessRuleError"];
             429: components["responses"]["RateLimited"];
         };
@@ -6109,6 +6725,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
                 /** @description Webhook id (the `id` field from `GET /webhooks`) */
@@ -6133,6 +6751,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["BusinessRuleError"];
             429: components["responses"]["RateLimited"];
         };
@@ -6182,6 +6801,8 @@ export interface operations {
             header?: {
                 /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
                 "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
                 /** @description Delivery id (the `id` field from `GET /webhooks/{id}/deliveries`) */
@@ -6205,6 +6826,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["BusinessRuleError"];
             429: components["responses"]["RateLimited"];
         };
@@ -6511,7 +7133,10 @@ export interface operations {
     publishAppEvent: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
             path?: never;
             cookie?: never;
         };
@@ -6534,13 +7159,17 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             429: components["responses"]["RateLimited"];
         };
     };
     sendAppNotification: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
             path?: never;
             cookie?: never;
         };
@@ -6563,6 +7192,684 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["BusinessRuleError"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    listAnnouncements: {
+        parameters: {
+            query?: {
+                /** @description Include announcements past their `expiresAt` */
+                includeExpired?: boolean;
+                /** @description Page size. Every paginated list uses `limit` and `cursor`. */
+                limit?: components["parameters"]["Limit"];
+                /** @description Opaque value from `nextCursor` of the previous page. Omit it for the first page; `nextCursor: null` means there are no more pages. A cursor is only valid with the same filters it was issued for. */
+                cursor?: components["parameters"]["Cursor"];
+            };
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        announcements: components["schemas"]["Announcement"][];
+                        nextCursor: string | null;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    createAnnouncement: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title: string;
+                    /** @description Markdown */
+                    body: string;
+                    pinned?: boolean;
+                    /**
+                     * Format: date-time
+                     * @description ISO 8601 with offset; after it the announcement disappears from the feed
+                     */
+                    expiresAt?: string | null;
+                    notifyByEmail?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["BusinessRuleError"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    deleteAnnouncement: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path: {
+                /** @description Announcement id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    updateAnnouncement: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path: {
+                /** @description Announcement id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title?: string;
+                    /** @description Markdown */
+                    body?: string;
+                    pinned?: boolean;
+                    /**
+                     * Format: date-time
+                     * @description ISO 8601 with offset; after it the announcement disappears from the feed
+                     */
+                    expiresAt?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    listClubEvents: {
+        parameters: {
+            query?: {
+                /** @description Include events that already started */
+                includePast?: boolean;
+                /** @description Page size. Every paginated list uses `limit` and `cursor`. */
+                limit?: components["parameters"]["Limit"];
+                /** @description Opaque value from `nextCursor` of the previous page. Omit it for the first page; `nextCursor: null` means there are no more pages. A cursor is only valid with the same filters it was issued for. */
+                cursor?: components["parameters"]["Cursor"];
+            };
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        events: components["schemas"]["ClubEvent"][];
+                        nextCursor: string | null;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    createClubEvent: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title: string;
+                    description?: string | null;
+                    location?: string | null;
+                    /**
+                     * Format: date-time
+                     * @description ISO 8601 with offset, e.g. `2026-07-04T18:00:00+02:00`
+                     */
+                    startsAt: string;
+                    /** Format: date-time */
+                    endsAt?: string | null;
+                    /** @default true */
+                    rsvpEnabled?: boolean;
+                    /** Format: date-time */
+                    rsvpDeadline?: string | null;
+                    capacity?: number | null;
+                    notifyByEmail?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["BusinessRuleError"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    deleteClubEvent: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path: {
+                /** @description Event id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    updateClubEvent: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path: {
+                /** @description Event id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title?: string;
+                    description?: string | null;
+                    location?: string | null;
+                    /**
+                     * Format: date-time
+                     * @description ISO 8601 with offset, e.g. `2026-07-04T18:00:00+02:00`
+                     */
+                    startsAt?: string;
+                    /** Format: date-time */
+                    endsAt?: string | null;
+                    /** @default true */
+                    rsvpEnabled?: boolean;
+                    /** Format: date-time */
+                    rsvpDeadline?: string | null;
+                    capacity?: number | null;
+                    cancelled?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    listPosts: {
+        parameters: {
+            query?: {
+                /** @description Page size. Every paginated list uses `limit` and `cursor`. */
+                limit?: components["parameters"]["Limit"];
+                /** @description Opaque value from `nextCursor` of the previous page. Omit it for the first page; `nextCursor: null` means there are no more pages. A cursor is only valid with the same filters it was issued for. */
+                cursor?: components["parameters"]["Cursor"];
+            };
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        posts: components["schemas"]["Post"][];
+                        nextCursor: string | null;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    createPost: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["BusinessRuleError"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    deletePost: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path: {
+                /** @description Post id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    updatePost: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path: {
+                /** @description Post id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    listWorkTasks: {
+        parameters: {
+            query?: {
+                /** @description Include closed tasks */
+                includeClosed?: boolean;
+            };
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        tasks: components["schemas"]["WorkTask"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["BusinessRuleError"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    listWorkEntries: {
+        parameters: {
+            query?: {
+                status?: "pending" | "approved" | "rejected";
+                workTaskId?: string;
+                tenantUserId?: string;
+                /** @description Page size. Every paginated list uses `limit` and `cursor`. */
+                limit?: components["parameters"]["Limit"];
+                /** @description Opaque value from `nextCursor` of the previous page. Omit it for the first page; `nextCursor: null` means there are no more pages. A cursor is only valid with the same filters it was issued for. */
+                cursor?: components["parameters"]["Cursor"];
+            };
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        entries: components["schemas"]["WorkEntry"][];
+                        nextCursor: string | null;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    getWorkHoursSummary: {
+        parameters: {
+            query?: {
+                year?: number;
+            };
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        members: components["schemas"]["WorkHoursSummary"][];
+                        period: {
+                            [key: string]: unknown;
+                        };
+                        years: number[];
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    listAuditLog: {
+        parameters: {
+            query?: {
+                action?: string;
+                since?: string;
+                /** @description Page size. Every paginated list uses `limit` and `cursor`. */
+                limit?: components["parameters"]["Limit"];
+                /** @description Opaque value from `nextCursor` of the previous page. Omit it for the first page; `nextCursor: null` means there are no more pages. A cursor is only valid with the same filters it was issued for. */
+                cursor?: components["parameters"]["Cursor"];
+            };
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        entries: components["schemas"]["AuditLogEntry"][];
+                        nextCursor: string | null;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    importMembers: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club context. Required for personal API keys (`ck_user_`) on every club-scoped request (ids: `GET /me/tenants`); omitting it returns `400 VALIDATION`, there is no default club. Member app tokens (`ccu_`) need it when the app is connected in more than one club; naming a club where it is not connected returns `403 FORBIDDEN`. Management keys (`ck_mgmt_`) and club app installation tokens (`cca_`) belong to one club and ignore the header unless it names another club (`403 FORBIDDEN`). */
+                "X-Tenant-Id"?: components["parameters"]["XTenantId"];
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    rows: {
+                        name: string | number;
+                        email: string | number;
+                        /** @description Role name as shown in the club; unknown names are reported in `warnings` */
+                        role?: string | number;
+                        phone?: string | number;
+                        memberNumber?: string | number;
+                    }[];
+                    /** @constant */
+                    consentConfirmed: true;
+                    sendInvites?: boolean;
+                    /** @description Your own id to find this import in the audit log */
+                    batchId?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberImportResult"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["BusinessRuleError"];
             429: components["responses"]["RateLimited"];
         };

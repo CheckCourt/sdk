@@ -20,6 +20,34 @@ export interface CourtLockEventData {
   end_time: string | null;
 }
 
+export interface TeamEventData {
+  team_id: string;
+}
+
+export interface MatchEventData {
+  match_id: string;
+  team_id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  is_away: boolean;
+}
+
+/** `starts_at` and `ends_at` are ISO 8601 instants; `ends_at` is null without a set end. */
+export interface ClubEventEventData {
+  event_id: string;
+  starts_at: string;
+  ends_at: string | null;
+}
+
+/** `amount_cents` in euro cents; guest names never appear. */
+export interface GuestFeeEventData {
+  charge_id: string;
+  user_id: string;
+  booking_id: string | null;
+  amount_cents: number;
+}
+
 export interface AppLifecycleEventData {
   installation_id: string;
   app_id: string;
@@ -37,6 +65,21 @@ export interface EventDataMap {
   "member.left": MemberEventData;
   "court.locked": CourtLockEventData;
   "court.unlocked": CourtLockEventData;
+  "team.created": TeamEventData;
+  "team.updated": TeamEventData & { changed_fields: string[] };
+  "team.deleted": TeamEventData;
+  "match.created": MatchEventData;
+  "match.updated": MatchEventData;
+  "match.cancelled": MatchEventData;
+  "club_event.created": ClubEventEventData;
+  "club_event.updated": ClubEventEventData;
+  "club_event.cancelled": ClubEventEventData;
+  "club_event.deleted": ClubEventEventData;
+  "announcement.published": { announcement_id: string };
+  "guest_fee.created": GuestFeeEventData;
+  "guest_fee.paid": GuestFeeEventData;
+  /** Names of the changed settings, not their values; read them with `GET /settings`. */
+  "settings.updated": { changed_keys: string[] };
   "webhook.test": { webhook_endpoint_id: string };
   "app.installed": AppLifecycleEventData;
   "app.uninstalled": AppLifecycleEventData;
@@ -58,6 +101,20 @@ export const SUBSCRIBABLE_EVENT_TYPES = [
   "member.left",
   "court.locked",
   "court.unlocked",
+  "team.created",
+  "team.updated",
+  "team.deleted",
+  "match.created",
+  "match.updated",
+  "match.cancelled",
+  "club_event.created",
+  "club_event.updated",
+  "club_event.cancelled",
+  "club_event.deleted",
+  "announcement.published",
+  "guest_fee.created",
+  "guest_fee.paid",
+  "settings.updated",
 ] as const satisfies readonly EventType[];
 
 export type SubscribableEventType = (typeof SUBSCRIBABLE_EVENT_TYPES)[number];
@@ -78,7 +135,18 @@ export const EVENT_TYPES = [
   ...APP_LIFECYCLE_EVENT_TYPES,
 ] as const satisfies readonly EventType[];
 
-export type EventObjectType = "booking" | "court" | "member" | "webhook_endpoint" | "app_installation";
+export type EventObjectType =
+  | "booking"
+  | "court"
+  | "member"
+  | "team"
+  | "match"
+  | "club_event"
+  | "announcement"
+  | "guest_fee"
+  | "tenant"
+  | "webhook_endpoint"
+  | "app_installation";
 
 export interface WebhookEventOf<T extends EventType> {
   /** `evt_…`, stable across retries and equal to the `CheckCourt-Event-Id` header: deduplicate on it. */

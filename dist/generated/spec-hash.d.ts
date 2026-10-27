@@ -1,1 +1,1 @@
-export declare const OPENAPI_SPEC_SHA256 = "2bf34f4fbfba9e950b8f44b09a760f4df37b47935001c5500612f1a3cc71b909";
+export declare const OPENAPI_SPEC_SHA256 = "29152e3bdb6ff3588ec81ac653af71b0098cbbe1815bd8515b6898e82b6916b2";

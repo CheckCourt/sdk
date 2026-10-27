@@ -9,6 +9,20 @@ export const SUBSCRIBABLE_EVENT_TYPES = [
     "member.left",
     "court.locked",
     "court.unlocked",
+    "team.created",
+    "team.updated",
+    "team.deleted",
+    "match.created",
+    "match.updated",
+    "match.cancelled",
+    "club_event.created",
+    "club_event.updated",
+    "club_event.cancelled",
+    "club_event.deleted",
+    "announcement.published",
+    "guest_fee.created",
+    "guest_fee.paid",
+    "settings.updated",
 ];
 /** Delivered to the app they concern without being listed in the manifest. */
 export const APP_LIFECYCLE_EVENT_TYPES = [

@@ -1975,6 +1975,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/members/directory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Look up member names
+         * @description **Required scope:** `members:read`
+         *
+         *     Names of approved members, the same reach a member has when searching for fellow players while booking. Members awaiting approval, open invitations and banned accounts never appear. Returns no email, phone or member number; those need `members:read_confidential` (`GET /members`).
+         *
+         *     Send exactly one of `search` (at least 2 characters, matched against the name, case-insensitive) or `ids` (comma-separated user ids, at most 50). `limit` caps search results; an `ids` lookup returns every match. Ids that are unknown, belong to another club or don't qualify are missing from the answer, without an error. Sorted by name.
+         */
+        get: operations["listMemberDirectory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/charges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Charge a member a fee
+         * @description **Required scope:** `charges:write` (club app installation tokens `cca_` only; member app tokens and API keys receive `403`). The installation also needs `members:read`, because `recipient` is a user id.
+         *
+         *     Puts a fee, for example a tournament entry fee, on the member's fee account. The member sees it with your app's name; the club settles it like a guest fee by marking it paid. There is no online payment. Your installation then receives `charge.paid` (list it in the manifest's `events`).
+         *
+         *     `recipient` must be an approved member of the club; unknown ids, ids of other clubs and members awaiting approval all return the same `404`. With `idempotencyKey` a retry returns the existing fee (`201` again) instead of creating a second one; the same key with a different recipient, amount, title or reference is `422 BUSINESS_RULE`.
+         */
+        post: operations["createAppCharge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/charges/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a fee your app created
+         * @description **Required scope:** `charges:write` (club app installation tokens `cca_` only; member app tokens and API keys receive `403`).
+         *
+         *     Only fees this installation created; any other id is `404`.
+         */
+        get: operations["getAppCharge"];
+        put?: never;
+        post?: never;
+        /**
+         * Cancel an open fee your app created
+         * @description **Required scope:** `charges:write` (club app installation tokens `cca_` only; member app tokens and API keys receive `403`).
+         *
+         *     Sets an open fee to `cancelled` and sends `charge.cancelled` to your installation. A fee that is already cancelled is returned unchanged. A paid fee cannot be cancelled by the app (`422 BUSINESS_RULE`); only the club can take back a payment.
+         */
+        delete: operations["cancelAppCharge"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3299,6 +3375,77 @@ export interface components {
             errors: string[];
             warnings: string[];
             limitReached: boolean;
+        };
+        /** @description A member's name, nothing else */
+        MemberDirectoryEntry: {
+            /** @description CheckCourt user id, as in `bookedBy` and `member.*` webhooks (`user_id`) */
+            userId: string;
+            /** @description Membership id (`member_id` in `member.*` webhooks) */
+            memberId: string;
+            /** @example Anna Müller */
+            name: string;
+        };
+        /** @description A fee a club app put on a member's fee account */
+        AppCharge: {
+            id: string;
+            /** @description CheckCourt user id of the member */
+            recipient: string;
+            /** @example 1500 */
+            amountCents: number;
+            /** @example Startgeld Vereinsmeisterschaft 2026 */
+            title: string;
+            /**
+             * @description Your own id for the fee, as you sent it
+             * @example entry-4711
+             */
+            reference: string | null;
+            /**
+             * @description `open` until the club marks it paid; `cancelled` when your app withdrew it or the member left the club. `refunded` is reserved for a later online payment
+             * @enum {string}
+             */
+            status: "open" | "paid" | "cancelled" | "refunded";
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @description Set while `status` is `paid`
+             */
+            paidAt: string | null;
+            /**
+             * Format: date-time
+             * @description Set while `status` is `cancelled`
+             */
+            cancelledAt: string | null;
+        };
+        AppChargeResponse: {
+            charge: components["schemas"]["AppCharge"];
+        };
+        CreateAppChargeRequest: {
+            /**
+             * @description CheckCourt user id of an approved member of the club
+             * @example n4c7v2b8m1x5z9q3w6e0r2t4
+             */
+            recipient: string;
+            /**
+             * @description Euro cents
+             * @example 1500
+             */
+            amountCents: number;
+            /**
+             * @description One line, shown to the member and the club; write it in German
+             * @example Startgeld Vereinsmeisterschaft 2026
+             */
+            title: string;
+            /**
+             * @description Your own id for the fee; returned in the charge and in every `charge.*` event
+             * @example entry-4711
+             */
+            reference?: string;
+            /**
+             * @description The same key on the same installation returns the existing fee instead of creating a second one. Reused with different values: `422`
+             * @example entry-4711
+             */
+            idempotencyKey?: string;
         };
     };
     responses: {
@@ -7870,6 +8017,142 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
+            422: components["responses"]["BusinessRuleError"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    listMemberDirectory: {
+        parameters: {
+            query?: {
+                /** @description Part of the name */
+                search?: string;
+                /**
+                 * @description Comma-separated CheckCourt user ids, at most 50
+                 * @example n4c7v2b8m1x5z9q3w6e0r2t4,p2l8k4j6h0g3f5d7s9a1q3w5
+                 */
+                ids?: string;
+                /** @description Maximum number of search results */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "members": [
+                     *         {
+                     *           "userId": "n4c7v2b8m1x5z9q3w6e0r2t4",
+                     *           "memberId": "t2y6u8i0o4p6a8s0d2f4g6h8",
+                     *           "name": "Anna Müller"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": {
+                        members: components["schemas"]["MemberDirectoryEntry"][];
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    createAppCharge: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Makes a retry safe: the first response to this key is stored for 24 hours per credential and club, and a repeat with the same key and body returns it again (with `Idempotent-Replayed: true`) instead of running the request twice. The same key with a different body returns `409 CONFLICT`. Server errors and 429 are not stored, so those can be retried with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAppChargeRequest"];
+            };
+        };
+        responses: {
+            /** @description The fee, open */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppChargeResponse"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["BusinessRuleError"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    getAppCharge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Id of a fee your installation created */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppChargeResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    cancelAppCharge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Id of a fee your installation created */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The cancelled fee */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppChargeResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             422: components["responses"]["BusinessRuleError"];
             429: components["responses"]["RateLimited"];
         };

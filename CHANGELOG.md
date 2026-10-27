@@ -3,6 +3,19 @@
 All notable changes to `@checkcourt/sdk` are listed here. The SDK is in `0.x`: minor
 versions may contain breaking changes.
 
+## 0.14.0
+
+### Added
+- `memberDirectory(client, { search } | { ids })`: names of the club's approved members without
+  contact data (`GET /members/directory`, scope `members:read`).
+- Fees for apps: `createCharge`, `getCharge` and `cancelCharge` (`/app/charges`, new app-only
+  scope `charges:write`, club installations with `members:read`). The club settles the fee like
+  any other; your app receives `charge.paid`, `charge.reopened` and `charge.cancelled`.
+- `OWNER_AUDIENCE_EVENT_TYPES` and `ChargeEventData`: events about objects your app created, listed
+  in a manifest's `events` and delivered only to the creating installation.
+
+Requires a CheckCourt platform with the matching API.
+
 ## 0.13.0
 
 ### Added

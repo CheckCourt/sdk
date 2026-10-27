@@ -1,4 +1,4 @@
-import type { SubscribableEventType } from "./events.js";
+import type { OwnerAudienceEventType, SubscribableEventType } from "./events.js";
 export declare const MANIFEST_VERSION = 1;
 export declare const INSTALL_TARGETS: readonly ["tenant", "user"];
 export type InstallTarget = (typeof INSTALL_TARGETS)[number];
@@ -109,7 +109,7 @@ export interface AppPermission {
 export declare const APP_ACTION_ICONS: readonly ["bell", "calendar", "calendar-check", "camera", "chart-column", "circle-help", "clipboard-list", "clock", "cloud-rain", "door-open", "file-text", "flag", "heart-pulse", "info", "key-round", "lightbulb", "link", "list-checks", "lock-open", "map-pin", "megaphone", "message-square", "receipt", "send", "sparkles", "star", "sun", "thermometer", "ticket", "triangle-alert", "trophy", "user-round", "users", "wallet", "wrench"];
 export type AppActionIcon = (typeof APP_ACTION_ICONS)[number];
 /** Every scope an app may request. Role, app, webhook, key, billing and AVV management are reserved for people. */
-export declare const GRANTABLE_SCOPES: readonly ["courts:read", "courts:read_confidential", "courts:write", "bookings:read", "bookings:read_confidential", "bookings:write", "bookings:cancel", "bookings:edit", "bookings:export", "members:read", "members:read_confidential", "members:invite", "members:write", "members:delete", "teams:read", "teams:write", "policies:read", "policies:read_confidential", "policies:write", "categories:read", "categories:write", "invites:read", "invites:write", "settings:read", "settings:read_confidential", "settings:write", "guest_fees:read", "guest_fees:write", "audit:read", "announcements:read", "announcements:write", "events:read", "events:write", "posts:read", "posts:write", "posts:moderate", "court_layout:read", "court_layout:write", "work_hours:read", "work_hours:write", "work_hours:manage", "compliance:read", "kiosk:manage", "trainer_blocks:write", "analytics:read", "embeds:manage", "webhooks:read", "notifications:send"];
+export declare const GRANTABLE_SCOPES: readonly ["courts:read", "courts:read_confidential", "courts:write", "bookings:read", "bookings:read_confidential", "bookings:write", "bookings:cancel", "bookings:edit", "bookings:export", "members:read", "members:read_confidential", "members:invite", "members:write", "members:delete", "teams:read", "teams:write", "policies:read", "policies:read_confidential", "policies:write", "categories:read", "categories:write", "invites:read", "invites:write", "settings:read", "settings:read_confidential", "settings:write", "guest_fees:read", "guest_fees:write", "audit:read", "announcements:read", "announcements:write", "events:read", "events:write", "posts:read", "posts:write", "posts:moderate", "court_layout:read", "court_layout:write", "work_hours:read", "work_hours:write", "work_hours:manage", "compliance:read", "kiosk:manage", "trainer_blocks:write", "analytics:read", "embeds:manage", "webhooks:read", "notifications:send", "charges:write"];
 export type GrantableScope = (typeof GRANTABLE_SCOPES)[number];
 type KindOf<K extends ExtensionKind> = K extends "iframe" ? {
     kind: K;
@@ -267,7 +267,7 @@ export interface Manifest {
     tenantScopes?: readonly GrantableScope[];
     userScopes?: readonly GrantableScope[];
     /** Lifecycle events (`app.*`) arrive without being listed. */
-    events?: readonly SubscribableEventType[];
+    events?: readonly (SubscribableEventType | OwnerAudienceEventType)[];
     /** At most 20. */
     extensions?: readonly ManifestExtension[];
     settingsSchema?: SettingsSchema;

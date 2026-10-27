@@ -14,6 +14,16 @@ export {
   type PublishedAppEvent,
 } from "./connections.js";
 export {
+  createCharge,
+  getCharge,
+  cancelCharge,
+  CHARGE_TITLE_MAX,
+  CHARGE_AMOUNT_MAX_CENTS,
+  type AppCharge,
+  type CreateChargeInput,
+} from "./charges.js";
+export { memberDirectory, type DirectoryMember, type MemberDirectoryQuery } from "./members.js";
+export {
   sendNotification,
   NOTIFICATION_TITLE_MAX,
   NOTIFICATION_BODY_MAX,

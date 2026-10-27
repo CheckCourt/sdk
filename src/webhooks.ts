@@ -4,6 +4,8 @@ import { hmacSha256, hmacSha256Verify } from "./internal/hmac.js";
 import type { WebhookEvent } from "./events.js";
 
 export type {
+  ChargeEventData,
+  OwnerAudienceEventType,
   AppEvent,
   AppEventType,
   AppMetadataChangedEvent,
@@ -24,6 +26,7 @@ export type {
 export {
   APP_LIFECYCLE_EVENT_TYPES,
   EVENT_TYPES,
+  OWNER_AUDIENCE_EVENT_TYPES,
   METADATA_CHANGED_EVENT_TYPE,
   SUBSCRIBABLE_EVENT_TYPES,
   appEventType,
